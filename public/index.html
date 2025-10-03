@@ -4,14 +4,36 @@
     <title>Chat App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
+      :root {
+        --primary: #007bff;
+        --background: #f0f0f0;
+        --chat-bg: #fff;
+        --text: #222;
+        --header-bg: var(--primary);
+        --header-text: #fff;
+        --input-bg: #f9f9f9;
+        --input-border: #ccc;
+        --modal-bg: rgba(0,0,0,0.7);
+      }
+      body.night {
+        --primary: #222c3c;
+        --background: #141922;
+        --chat-bg: #232a36;
+        --text: #e4e8f0;
+        --header-bg: #222c3c;
+        --header-text: #e4e8f0;
+        --input-bg: #181e26;
+        --input-border: #2c3550;
+        --modal-bg: rgba(20,25,34,0.95);
+      }
       body {
+        color: var(--text);
         font: 16px Arial, sans-serif;
+        background-color: var(--background);
         display: flex;
         justify-content: center;
         align-items: flex-start;
         min-height: 100vh;
-        background-color: #f0f0f0;
         margin: 0;
         overflow-x: hidden;
         padding-top: 40px;
@@ -23,8 +45,8 @@
         margin-top: 40px;
         display: flex;
         flex-direction: column;
-        background-color: #fff;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: var(--chat-bg);
+        box-shadow: 0 4px 8px rgba(0,0,0,.13);
         border-radius: 8px;
         overflow: hidden;
         position: relative;
@@ -32,12 +54,41 @@
       h2 {
         text-align: center;
         padding: 15px;
-        background-color: #007bff;
-        color: white;
+        background-color: var(--header-bg);
+        color: var(--header-text);
         margin: 0;
         position: sticky;
         top: 0;
         z-index: 10;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        font-size: 1.6em;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .night-toggle {
+        position: absolute;
+        right: 20px;
+        top: 15px;
+        z-index: 20;
+        display: flex;
+        gap: 6px;
+      }
+      .night-toggle button {
+        background: none;
+        border: none;
+        font-size: 1.5em;
+        cursor: pointer;
+        color: var(--header-text);
+        margin: 0 2px;
+        padding: 2px 6px;
+        transition: background 0.18s, color 0.18s;
+        border-radius: 4px;
+      }
+      .night-toggle button.active {
+        background: rgba(255,255,255,0.18);
+        color: #ffe66d;
       }
       #messages {
         list-style: none;
@@ -46,7 +97,7 @@
         max-height: 70vh;
         overflow-y: auto;
         display: block;
-        background: #fff;
+        background: var(--chat-bg);
       }
       #messages li {
         margin: 10px 0;
@@ -71,9 +122,13 @@
         max-height: 180px;
         background: #222;
       }
+      body.night #messages audio,
+      body.night #messages video {
+        background: #181e26;
+      }
       #messages a {
         text-decoration: none;
-        color: #007bff;
+        color: var(--primary);
         margin-left: 10px;
         display: flex;
         align-items: center;
@@ -84,7 +139,7 @@
       #form {
         display: flex;
         padding: 12px;
-        background-color: #f9f9f9;
+        background-color: var(--input-bg);
         align-items: center;
         position: sticky;
         bottom: 0;
@@ -93,9 +148,11 @@
       #input {
         flex-grow: 1;
         padding: 12px;
-        border: 1px solid #ccc;
+        border: 1px solid var(--input-border);
         border-radius: 4px;
         font-size: 16px;
+        background: var(--chat-bg);
+        color: var(--text);
       }
       #fileInput {
         display: none;
@@ -111,12 +168,17 @@
         cursor: pointer;
         margin-left: 10px;
         font-size: 20px;
+        color: #222;
+      }
+      body.night .file-button {
+        background: #232a36;
+        color: #e4e8f0;
       }
       button {
         padding: 12px 20px;
         margin-left: 10px;
-        background-color: #007bff;
-        color: white;
+        background-color: var(--primary);
+        color: var(--header-text);
         border: none;
         border-radius: 4px;
         cursor: pointer;
@@ -124,6 +186,9 @@
       }
       button:hover {
         background-color: #0056b3;
+      }
+      body.night button:hover {
+        background-color: #2c3550;
       }
       #attachedFile {
         margin-left: 10px;
@@ -134,6 +199,9 @@
         text-overflow: ellipsis;
         max-width: 150px;
       }
+      body.night #attachedFile {
+        color: #e4e8f0;
+      }
       .modal {
         display: flex;
         position: fixed;
@@ -141,13 +209,13 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
+        background-color: var(--modal-bg);
         justify-content: center;
         align-items: center;
         z-index: 1000;
       }
       .modal-content {
-        background-color: white;
+        background-color: var(--chat-bg);
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -163,9 +231,11 @@
         width: 100%;
         padding: 12px;
         margin-bottom: 12px;
-        border: 1px solid #ccc;
+        border: 1px solid var(--input-border);
         border-radius: 4px;
         font-size: 16px;
+        background: var(--chat-bg);
+        color: var(--text);
       }
       .modal-content button {
         width: 100%;
@@ -175,7 +245,7 @@
         font-size: 16px;
       }
       .error {
-        color: red;
+        color: #e74c3c;
         margin-top: 8px;
         font-size: 14px;
       }
@@ -190,7 +260,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        background: rgba(0,0,0,0.7);
+        background: var(--modal-bg);
         z-index: 2000;
         transition: opacity 0.2s;
       }
@@ -211,7 +281,7 @@
         font-size: 2em;
         background: none;
         border: none;
-        color: white;
+        color: #fff;
         cursor: pointer;
         z-index: 10;
       }
@@ -257,6 +327,14 @@
         background: #007bff;
         color: white;
       }
+      body.night #imageModalButtons button {
+        background: #232a36;
+        color: #ffe66d;
+      }
+      body.night #imageModalButtons button:hover {
+        background: #007bff;
+        color: #fff;
+      }
       @media (max-width: 600px) {
         body { font-size: 18px; }
         .chat-container { max-width: 100%; max-height: 95vh; border-radius: 0; margin-top: 0; }
@@ -292,7 +370,13 @@
       </div>
     </div>
     <div class="chat-container hidden" id="chatContainer">
-      <h2>Socket.IO Chat</h2>
+      <h2>
+        Socket.IO Chat
+        <span class="night-toggle" id="nightToggle">
+          <button id="dayBtn" title="Light mode">🌞</button>
+          <button id="nightBtn" title="Night mode">🌙</button>
+        </span>
+      </h2>
       <ul id="messages"></ul>
       <form id="form">
         <input id="input" autocomplete="off" />
@@ -318,6 +402,28 @@
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
+      // Night mode logic
+      const nightBtn = document.getElementById("nightBtn");
+      const dayBtn = document.getElementById("dayBtn");
+      function setNightMode(isNight) {
+        if(isNight) {
+          document.body.classList.add('night');
+          nightBtn.classList.add('active');
+          dayBtn.classList.remove('active');
+          localStorage.setItem('nightMode','1');
+        } else {
+          document.body.classList.remove('night');
+          dayBtn.classList.add('active');
+          nightBtn.classList.remove('active');
+          localStorage.setItem('nightMode','0');
+        }
+      }
+      // Init night mode from storage
+      if(localStorage.getItem('nightMode') === '1') setNightMode(true);
+      else setNightMode(false);
+      nightBtn.addEventListener("click", ()=>setNightMode(true));
+      dayBtn.addEventListener("click", ()=>setNightMode(false));
+
       const socket = io();
       const form = document.getElementById("form");
       const input = document.getElementById("input");
