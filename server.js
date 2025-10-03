@@ -30,10 +30,10 @@ io.on("connection", (socket) => {
     io.emit("chat message", data); // Broadcast name + message
   });
 
-  // Handle image messages
-  socket.on("image message", (data) => {
-    console.log(`${data.user} sent an image`);
-    io.emit("image message", data); // Broadcast name + image
+  // Handle file messages
+  socket.on("file message", (data) => {
+    console.log(`${data.user} sent a file: ${data.fileName}`);
+    io.emit("file message", data); // Broadcast name + fileName + data
   });
 
   // Handle disconnect
