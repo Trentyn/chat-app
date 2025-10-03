@@ -445,29 +445,14 @@
         }
       });
 
-      // Render a single message (text or file)
+      // Render a single message (text only for history)
       function renderMessage(msg) {
         const item = document.createElement("li");
         if (msg.type === "text") {
           item.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
-        } else if (msg.type === "file") {
-          if (!msg.data) {
-            let label = msg.fileType === "image" ? "*image*" : "*file*";
-            item.innerHTML = `<strong>${msg.user}:</strong> ${label} (${msg.fileName})`;
-          } else {
-            // Show actual file
-            const mimeTypeMatch = msg.data.match(/^data:([^;]+);/);
-            const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
-            let content = `<strong>${msg.user}:</strong> `;
-            if (mimeType.startsWith('image/')) {
-              content += `<img src="${msg.data}" alt="${msg.fileName}" />`;
-            } else {
-              content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥 Download</a>`;
-            }
-            item.innerHTML = content;
-          }
+          messages.appendChild(item);
         }
-        messages.appendChild(item);
+        // File/image messages will never appear in history!
       }
 
       // Display chat history (received on join)
@@ -483,7 +468,7 @@
         messages.scrollTop = messages.scrollHeight;
       });
 
-      // Display new file message
+      // Display new file message (live only)
       socket.on("file message", (msg) => {
         // Remove "Sending..." status if present
         if (uploadMessageLi && uploadMessageLi.parentNode) {
@@ -491,11 +476,20 @@
           uploadMessageLi = null;
           if (sendingTimeout) clearTimeout(sendingTimeout);
         }
-        renderMessage(msg);
+        // Render live file/image
+        const item = document.createElement("li");
+        const mimeTypeMatch = msg.data.match(/^data:([^;]+);/);
+        const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
+        let content = `<strong>${msg.user}:</strong> `;
+        if (mimeType.startsWith('image/')) {
+          content += `<img src="${msg.data}" alt="${msg.fileName}" />`;
+        } else {
+          content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥 Download</a>`;
+        }
+        item.innerHTML = content;
+        messages.appendChild(item);
         messages.scrollTop = messages.scrollHeight;
       });
     </script>
   </body>
 </html>
-
-
