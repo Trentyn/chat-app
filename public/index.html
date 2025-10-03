@@ -301,6 +301,7 @@
 
       let username = "";
       let isUploading = false;
+      let uploadMessageLi = null;
 
       // Handle username submission
       submitUsername.addEventListener("click", () => {
@@ -352,71 +353,81 @@
       // Handle form submission (text or file)
       form.addEventListener("submit", (e) => {
         e.preventDefault();
-        if (isUploading) return; // Prevent multiple submits
-
         const textToSend = input.value.trim();
         const hasFile = fileInput.files.length > 0;
 
-        if (!textToSend && !hasFile) return; // Nothing to send
-
+        // Allow text messages even during upload
         if (textToSend) {
           socket.emit("chat message", { user: username, text: textToSend });
           input.value = "";
         }
 
-        if (hasFile) {
+        // If a file is selected and not currently uploading, upload it
+        if (hasFile && !isUploading) {
           const file = fileInput.files[0];
           if (file.size > 100 * 1024 * 1024) { // 100MB limit
             alert("File size exceeds 100MB!");
             return;
           }
-        
-          // Show progress UI
           isUploading = true;
-          sendButton.disabled = true;
-          input.disabled = true;
           fileInput.disabled = true;
           progressContainer.style.display = "block";
           uploadProgress.value = 0;
-        
+
+          // Add a placeholder message to chat
+          uploadMessageLi = document.createElement("li");
+          uploadMessageLi.innerHTML =
+            `<strong>${username}:</strong> Uploading <em>${file.name}</em>... <span id="uploadStatus">0%</span>`;
+          messages.appendChild(uploadMessageLi);
+          messages.scrollTop = messages.scrollHeight;
+
           const reader = new FileReader();
-        
-          // Update progress bar
+
+          // Update progress bar and status in chat
           reader.onprogress = (event) => {
             if (event.lengthComputable) {
-              const percent = (event.loaded / event.total) * 100;
+              const percent = Math.round((event.loaded / event.total) * 100);
               uploadProgress.value = percent;
+              if (uploadMessageLi) {
+                uploadMessageLi.querySelector("#uploadStatus").textContent = percent + "%";
+              }
             }
           };
-        
+
           reader.onload = () => {
             socket.emit("file message", {
               user: username,
               fileName: file.name,
               data: reader.result,
             });
-        
+
             // Reset form UI after upload
             fileInput.value = "";
             attachedFile.textContent = "";
             progressContainer.style.display = "none";
             uploadProgress.value = 0;
             isUploading = false;
-            sendButton.disabled = false;
-            input.disabled = false;
             fileInput.disabled = false;
+
+            // Remove upload status message (it will be replaced by the server's file message)
+            if (uploadMessageLi && uploadMessageLi.parentNode) {
+              uploadMessageLi.parentNode.removeChild(uploadMessageLi);
+              uploadMessageLi = null;
+            }
           };
-        
+
           reader.onerror = () => {
             alert("Error reading file!");
             progressContainer.style.display = "none";
             uploadProgress.value = 0;
             isUploading = false;
-            sendButton.disabled = false;
-            input.disabled = false;
             fileInput.disabled = false;
+            if (uploadMessageLi && uploadMessageLi.parentNode) {
+              uploadMessageLi.parentNode.removeChild(uploadMessageLi);
+              uploadMessageLi = null;
+            }
           };
-        
+
           reader.readAsDataURL(file); // This works for all file types
         }
       });
@@ -430,16 +441,15 @@
       });
 
       // Display file messages
-      // Display file messages
       socket.on("file message", (data) => {
         const item = document.createElement("li");
-      
+
         // Safely extract MIME type
         const mimeTypeMatch = data.data.match(/^data:([^;]+);/);
         const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
-      
+
         let content = `<strong>${data.user}:</strong> `;
-      
+
         if (mimeType.startsWith('image/')) {
           // Show image preview
           content += `<img src="${data.data}" alt="${data.fileName}" />`;
@@ -447,7 +457,7 @@
           // Show file name with download link
           content += `📄 ${data.fileName} <a href="${data.data}" download="${data.fileName}">📥 Download</a>`;
         }
-      
+
         item.innerHTML = content;
         messages.appendChild(item);
         messages.scrollTop = messages.scrollHeight;
@@ -455,5 +465,3 @@
     </script>
   </body>
 </html>
-
-
