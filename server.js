@@ -53,15 +53,23 @@ io.on("connection", (socket) => {
   });
 
   socket.on("file message", (data) => {
+    // Broadcast file (with data) to all currently connected users
+    io.emit("file message", data);
+  
+    // Save only a placeholder in history (no data)
+    const mimeTypeMatch = data.data.match(/^data:([^;]+);/);
+    const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
+    let fileType = 'file';
+    if (mimeType.startsWith('image/')) fileType = 'image';
+  
     const msg = {
       type: "file",
       user: data.user,
       fileName: data.fileName,
-      data: data.data,
+      fileType: fileType,
       timestamp: Date.now()
     };
     messages.push(msg);
-    io.emit("file message", msg);
   });
 
   socket.on("disconnect", () => {
@@ -76,4 +84,5 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
