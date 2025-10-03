@@ -3,8 +3,6 @@
   <head>
     <title>Chat App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Plyr CSS for modern audio/video player -->
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
@@ -184,32 +182,31 @@
       .hidden {
         display: none !important;
       }
-      /* Image modal styles */
-      #imageModal {
+
+      /* Image/Video modal styles */
+      #inspectModal {
         position: fixed;
         top: 0; left: 0;
         width: 100vw; height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
-        background: rgba(0,0,0,0.65);
+        background: rgba(0,0,0,0.7);
         z-index: 2000;
         transition: opacity 0.2s;
       }
-      #imageModal.hidden {
-        display: none !important;
-        opacity: 0;
-      }
-      #imageModalContent {
+      #inspectModal.hidden { display: none !important; opacity: 0; }
+      #inspectModalContent {
         position: relative;
-        max-width: 90vw;
-        max-height: 90vh;
+        max-width: 96vw;
+        max-height: 96vh;
         display: flex;
         flex-direction: column;
         align-items: center;
         background: none;
+        z-index: 2;
       }
-      #imageModalClose {
+      #modalClose {
         position: absolute;
         top: 10px; right: 10px;
         font-size: 2em;
@@ -217,20 +214,39 @@
         border: none;
         color: white;
         cursor: pointer;
-        z-index: 2;
+        z-index: 10;
       }
-      #modalImage {
-        max-width: 85vw;
-        max-height: 80vh;
+      #modalMediaWrapper {
+        position: relative;
+        overflow: hidden;
+        width: 90vw;
+        height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+      }
+      #modalImage, #modalVideo {
+        max-width: 100%;
+        max-height: 100%;
         object-fit: contain;
         border-radius: 8px;
         transition: transform 0.2s;
         background: #fff;
         box-shadow: 0 4px 24px rgba(0,0,0,0.18);
-        z-index: 1;
+        cursor: grab;
+        position: absolute;
+        left: 0; top: 0;
       }
-      #imageModalButtons { margin-bottom:12px;display:flex;gap:10px;z-index:2;position:relative; }
-      #imageModalButtons button {
+      #modalVideo { background: #000; }
+      #inspectModalButtons {
+        margin-bottom: 12px;
+        display: flex;
+        gap: 10px;
+        z-index: 5;
+        position: relative;
+      }
+      #inspectModalButtons button {
         background: rgba(40,40,40,0.8);
         color: white;
         border: none;
@@ -239,91 +255,32 @@
         cursor: pointer;
         transition: background 0.15s;
       }
-      #imageModalButtons button:hover {
+      #inspectModalButtons button:hover {
         background: #007bff;
         color: white;
       }
       @media (max-width: 600px) {
-        body {
-          font-size: 18px;
-        }
-        .chat-container {
-          max-width: 100%;
-          max-height: 95vh;
-          border-radius: 0;
-          margin-top: 0;
-        }
-        h2 {
-          font-size: 1.8em;
-          padding: 10px;
-        }
-        #input {
-          font-size: 16px;
-          padding: 10px;
-        }
-        .file-button {
-          width: 35px;
-          height: 35px;
-          font-size: 18px;
-          margin-left: 8px;
-        }
-        button {
-          font-size: 16px;
-          padding: 10px 18px;
-          margin-left: 8px;
-        }
-        #messages {
-          height: 55vh;
-          max-height: 60vh;
-          padding: 12px;
-        }
-        #messages li {
-          font-size: 16px;
-          margin: 8px 0;
-        }
-        #messages img {
-          max-height: 120px;
-        }
-        #messages audio,
-        #messages video {
-          max-width: 220px;
-          max-height: 120px;
-        }
-        #form {
-          padding: 10px;
-          flex-wrap: wrap;
-        }
-        #input {
-          margin-bottom: 10px;
-        }
-        #attachedFile {
-          max-width: 120px;
-          font-size: 12px;
-        }
-        .modal-content {
-          width: 95%;
-          max-width: 320px;
-          padding: 20px;
-        }
-        .modal-content h3 {
-          font-size: 1.5em;
-        }
-        .modal-content input {
-          font-size: 16px;
-          padding: 10px;
-        }
-        .modal-content button {
-          font-size: 16px;
-          padding: 10px;
-        }
-        .error {
-          font-size: 14px;
-        }
+        body { font-size: 18px; }
+        .chat-container { max-width: 100%; max-height: 95vh; border-radius: 0; margin-top: 0; }
+        h2 { font-size: 1.8em; padding: 10px; }
+        #input { font-size: 16px; padding: 10px; }
+        .file-button { width: 35px; height: 35px; font-size: 18px; margin-left: 8px; }
+        button { font-size: 16px; padding: 10px 18px; margin-left: 8px; }
+        #messages { height: 55vh; max-height: 60vh; padding: 12px; }
+        #messages li { font-size: 16px; margin: 8px 0; }
+        #messages img { max-height: 120px; }
+        #messages audio, #messages video { max-width: 220px; max-height: 120px; }
+        #form { padding: 10px; flex-wrap: wrap; }
+        #input { margin-bottom: 10px; }
+        #attachedFile { max-width: 120px; font-size: 12px; }
+        .modal-content { width: 95%; max-width: 320px; padding: 20px; }
+        .modal-content h3 { font-size: 1.5em; }
+        .modal-content input { font-size: 16px; padding: 10px; }
+        .modal-content button { font-size: 16px; padding: 10px; }
+        .error { font-size: 14px; }
       }
       @media (max-width: 600px) {
-        html {
-          font-size: 18px;
-        }
+        html { font-size: 18px; }
       }
     </style>
   </head>
@@ -347,20 +304,23 @@
         <button id="sendButton">Send</button>
       </form>
     </div>
-    <!-- Image Modal for inspecting images -->
-    <div id="imageModal" class="hidden">
-      <div id="imageModalContent">
-        <button id="imageModalClose">✖</button>
-        <div id="imageModalButtons">
+    <!-- Modal for inspecting images and videos -->
+    <div id="inspectModal" class="hidden">
+      <div id="inspectModalContent">
+        <button id="modalClose">✖</button>
+        <div id="inspectModalButtons">
           <button id="zoomIn">🔍+</button>
           <button id="zoomOut">🔍−</button>
-          <button id="downloadImage">⬇️ Download image</button>
+          <button id="fullscreenBtn">⛶ Fullscreen</button>
+          <button id="downloadBtn">⬇️ Download</button>
         </div>
-        <img id="modalImage" src="" alt="Preview" />
+        <div id="modalMediaWrapper">
+          <img id="modalImage" src="" alt="Preview" style="display:none;" />
+          <video id="modalVideo" style="display:none;" controls></video>
+        </div>
       </div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
     <script>
       const socket = io();
       const form = document.getElementById("form");
@@ -375,21 +335,27 @@
       const chatContainer = document.getElementById("chatContainer");
       const usernameError = document.getElementById("usernameError");
 
-      // Image modal elements
-      const imageModal = document.getElementById("imageModal");
-      const imageModalContent = document.getElementById("imageModalContent");
-      const imageModalClose = document.getElementById("imageModalClose");
+      // Modal elements
+      const inspectModal = document.getElementById("inspectModal");
+      const inspectModalContent = document.getElementById("inspectModalContent");
+      const modalClose = document.getElementById("modalClose");
+      const zoomInBtn = document.getElementById("zoomIn");
+      const zoomOutBtn = document.getElementById("zoomOut");
+      const fullscreenBtn = document.getElementById("fullscreenBtn");
+      const downloadBtn = document.getElementById("downloadBtn");
       const modalImage = document.getElementById("modalImage");
-      const zoomIn = document.getElementById("zoomIn");
-      const zoomOut = document.getElementById("zoomOut");
-      const downloadImage = document.getElementById("downloadImage");
-      let currentZoom = 1;
+      const modalVideo = document.getElementById("modalVideo");
+      const modalMediaWrapper = document.getElementById("modalMediaWrapper");
 
       let username = "";
       let isUploading = false;
       let uploadMessageLi = null;
       let sendingTimeout = null;
       let sendingAnimationInterval = null;
+
+      // For modal zoom and pan
+      let currentZoom = 1;
+      let panX = 0, panY = 0, isPanning = false, startPan = {x:0, y:0}, startOffset = {x:0, y:0};
 
       // Handle username submission
       submitUsername.addEventListener("click", () => {
@@ -525,23 +491,17 @@
         if (mimeType.startsWith('image/')) {
           content += `<img src="${msg.data}" alt="${msg.fileName}" style="cursor:pointer;" />`;
         } else if (mimeType.startsWith('audio/')) {
-          content += `🎵 ${msg.fileName} <audio class="plyr" controls src="${msg.data}"></audio>`;
+          content += `🎵 ${msg.fileName} <audio controls src="${msg.data}" style="vertical-align:middle;max-width:280px;"></audio>`;
+          content += `<a href="${msg.data}" download="${msg.fileName}" style="margin-left:8px;">⬇️ Download</a>`;
         } else if (mimeType.startsWith('video/')) {
-          content += `🎬 ${msg.fileName} <video class="plyr" controls src="${msg.data}" style="max-width:280px;max-height:180px;border-radius:8px;"></video>`;
+          content += `🎬 ${msg.fileName} <video controls src="${msg.data}" style="max-width:280px;max-height:180px;border-radius:8px;cursor:pointer;"></video>`;
+          content += `<a href="${msg.data}" download="${msg.fileName}" style="margin-left:8px;">⬇️ Download</a>`;
         } else {
           content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥 Download</a>`;
         }
         item.innerHTML = content;
         messages.appendChild(item);
         messages.scrollTop = messages.scrollHeight;
-
-        // Initialize Plyr for new audio/video elements
-        setTimeout(() => {
-          const audios = item.querySelectorAll('audio.plyr');
-          const videos = item.querySelectorAll('video.plyr');
-          audios.forEach(a => new Plyr(a, {controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'download']}));
-          videos.forEach(v => new Plyr(v, {controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'download']}));
-        }, 10);
       }
 
       // Display chat history (received on join)
@@ -568,38 +528,146 @@
         renderFileMessage(msg);
       });
 
-      // Image modal logic
-      messages.addEventListener("click", function(e) {
-        if (e.target.tagName === "IMG") {
-          modalImage.src = e.target.src;
-          modalImage.style.transform = "scale(1)";
-          currentZoom = 1;
-          imageModal.classList.remove("hidden");
+      // ----------- MODAL LOGIC (image/video inspection) -----------
+      function openMediaModal(type, src) {
+        inspectModal.classList.remove('hidden');
+        currentZoom = 1;
+        panX = 0; panY = 0;
+        setTransform(0,0,1);
+        modalImage.style.display = 'none';
+        modalVideo.style.display = 'none';
+        modalImage.src = '';
+        modalVideo.src = '';
+        if(type === 'image') {
+          modalImage.src = src;
+          modalImage.style.display = '';
+          modalVideo.style.display = 'none';
+        } else if(type === 'video') {
+          modalVideo.src = src;
+          modalVideo.style.display = '';
+          modalImage.style.display = 'none';
         }
-      });
-      imageModalClose.addEventListener("click", () => {
-        imageModal.classList.add("hidden");
-      });
-      imageModal.addEventListener("click", (e) => {
-        if (e.target === imageModal) {
-          imageModal.classList.add("hidden");
+      }
+      function setTransform(x, y, scale) {
+        if(modalImage.style.display !== 'none') {
+          modalImage.style.transform = `translate(${x}px,${y}px) scale(${scale})`;
         }
-      });
-      zoomIn.addEventListener("click", () => {
+        if(modalVideo.style.display !== 'none') {
+          modalVideo.style.transform = `translate(${x}px,${y}px) scale(${scale})`;
+        }
+      }
+
+      // Drag and pan for both image and video (mouse)
+      function modalMouseDown(e) {
+        isPanning = true;
+        startPan.x = e.clientX; startPan.y = e.clientY;
+        startOffset.x = panX; startOffset.y = panY;
+        document.body.style.cursor = "grabbing";
+      }
+      function modalMouseMove(e) {
+        if(isPanning) {
+          panX = startOffset.x + (e.clientX - startPan.x);
+          panY = startOffset.y + (e.clientY - startPan.y);
+          setTransform(panX, panY, currentZoom);
+        }
+      }
+      function modalMouseUp(e) {
+        isPanning = false;
+        document.body.style.cursor = "";
+      }
+      // Touch drag for mobile
+      function modalTouchStart(e) {
+        if(e.touches.length===1) {
+          isPanning = true;
+          startPan.x = e.touches[0].clientX; startPan.y = e.touches[0].clientY;
+          startOffset.x = panX; startOffset.y = panY;
+        }
+      }
+      function modalTouchMove(e) {
+        if(isPanning && e.touches.length===1) {
+          panX = startOffset.x + (e.touches[0].clientX - startPan.x);
+          panY = startOffset.y + (e.touches[0].clientY - startPan.y);
+          setTransform(panX, panY, currentZoom);
+        }
+      }
+      function modalTouchEnd(e) {
+        isPanning = false;
+      }
+
+      // Zoom buttons
+      zoomInBtn.addEventListener("click", () => {
         currentZoom = Math.min(currentZoom + 0.25, 4);
-        modalImage.style.transform = `scale(${currentZoom})`;
+        setTransform(panX, panY, currentZoom);
       });
-      zoomOut.addEventListener("click", () => {
+      zoomOutBtn.addEventListener("click", () => {
         currentZoom = Math.max(currentZoom - 0.25, 0.5);
-        modalImage.style.transform = `scale(${currentZoom})`;
+        setTransform(panX, panY, currentZoom);
       });
-      downloadImage.addEventListener("click", () => {
-        const link = document.createElement('a');
-        link.href = modalImage.src;
-        link.download = 'image';
+
+      // Download button
+      downloadBtn.addEventListener("click", () => {
+        let src = modalImage.style.display !== 'none' ? modalImage.src : modalVideo.src;
+        let link = document.createElement('a');
+        link.href = src;
+        link.download = 'media';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      });
+
+      // Fullscreen button (for video)
+      fullscreenBtn.addEventListener("click", () => {
+        if(modalVideo.style.display !== 'none') {
+          if(modalVideo.requestFullscreen) {
+            modalVideo.requestFullscreen();
+          } else if(modalVideo.webkitRequestFullscreen) {
+            modalVideo.webkitRequestFullscreen();
+          } else if(modalVideo.msRequestFullscreen) {
+            modalVideo.msRequestFullscreen();
+          }
+        }
+      });
+
+      // Close modal
+      modalClose.addEventListener("click", () => {
+        inspectModal.classList.add("hidden");
+        modalImage.src = ""; modalVideo.src = "";
+      });
+      inspectModal.addEventListener("click", (e) => {
+        if (e.target === inspectModal) {
+          inspectModal.classList.add("hidden");
+          modalImage.src = ""; modalVideo.src = "";
+        }
+      });
+
+      // Mouse drag events for pan
+      modalImage.addEventListener('mousedown', modalMouseDown);
+      modalImage.addEventListener('mousemove', modalMouseMove);
+      modalImage.addEventListener('mouseup', modalMouseUp);
+      modalImage.addEventListener('mouseleave', modalMouseUp);
+
+      modalVideo.addEventListener('mousedown', modalMouseDown);
+      modalVideo.addEventListener('mousemove', modalMouseMove);
+      modalVideo.addEventListener('mouseup', modalMouseUp);
+      modalVideo.addEventListener('mouseleave', modalMouseUp);
+
+      // Touch drag events for pan
+      modalImage.addEventListener('touchstart', modalTouchStart);
+      modalImage.addEventListener('touchmove', modalTouchMove);
+      modalImage.addEventListener('touchend', modalTouchEnd);
+
+      modalVideo.addEventListener('touchstart', modalTouchStart);
+      modalVideo.addEventListener('touchmove', modalTouchMove);
+      modalVideo.addEventListener('touchend', modalTouchEnd);
+
+      // Open modal when clicking image/video in chat
+      messages.addEventListener("click", function(e) {
+        if (e.target.tagName === "IMG") {
+          openMediaModal('image', e.target.src);
+        }
+        if (e.target.tagName === "VIDEO") {
+          openMediaModal('video', e.target.src);
+        }
       });
     </script>
   </body>
