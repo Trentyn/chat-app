@@ -100,22 +100,11 @@
       const form = document.getElementById("form");
       const input = document.getElementById("input");
       const messages = document.getElementById("messages");
-    
       // Ask for username
       let username = "";
       while (!username) {
         username = prompt("Enter your name:");
       }
-    
-      // Function to add a message to the UI
-      function addMessage(data) {
-        const item = document.createElement("li");
-        item.innerHTML = `<strong>${data.user}:</strong> ${data.text}`;
-        messages.appendChild(item);
-        messages.scrollTop = messages.scrollHeight; // Scroll to bottom
-      }
-    
-      // Handle form submission
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         if (input.value) {
@@ -123,22 +112,12 @@
           input.value = "";
         }
       });
-    
-      // Handle single chat message
       socket.on("chat message", (data) => {
-        addMessage(data);
-      });
-    
-      // Handle message history
-      socket.on("message history", (history) => {
-        // Clear existing messages to avoid duplicates
-        messages.innerHTML = "";
-        // Add each message from history
-        history.forEach((data) => {
-          addMessage(data);
-        });
+        const item = document.createElement("li");
+        item.innerHTML = `<strong>${data.user}:</strong> ${data.text}`;
+        messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight; /* Scroll to bottom */
       });
     </script>
   </body>
 </html>
-
