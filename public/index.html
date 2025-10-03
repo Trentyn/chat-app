@@ -32,10 +32,13 @@
       }
       h2 {
         text-align: center;
-        padding: 20px;
+        padding: 15px; /* Reduced padding for mobile visibility */
         background-color: #007bff;
         color: white;
         margin: 0;
+        position: sticky; /* Make header sticky */
+        top: 0;
+        z-index: 10;
       }
       #messages {
         list-style: none;
@@ -49,18 +52,33 @@
       #messages li {
         margin: 10px 0;
         word-wrap: break-word;
+        display: flex;
+        align-items: center;
       }
       #messages img {
         max-width: 100%;
         max-height: 200px;
         border-radius: 8px;
-        margin-top: 5px;
+        margin-right: 10px;
+      }
+      #messages a {
+        text-decoration: none;
+        color: #007bff;
+        margin-left: 10px;
+        display: flex;
+        align-items: center;
+      }
+      #messages a:hover {
+        text-decoration: underline;
       }
       #form {
         display: flex;
         padding: 12px;
         background-color: #f9f9f9;
         align-items: center;
+        position: sticky; /* Make form sticky at bottom */
+        bottom: 0;
+        z-index: 10;
       }
       #input {
         flex-grow: 1;
@@ -70,7 +88,19 @@
         font-size: 16px;
       }
       #fileInput {
+        display: none; /* Hide the file input */
+      }
+      .file-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        background-color: #eee;
+        border-radius: 4px;
+        cursor: pointer;
         margin-left: 10px;
+        font-size: 20px; /* Icon size */
       }
       button {
         padding: 12px 20px;
@@ -137,7 +167,7 @@
       /* Responsive design for smaller screens */
       @media (max-width: 600px) {
         body {
-          font-size: 18px; /* Reduced from 22px */
+          font-size: 18px;
         }
         .chat-container {
           max-width: 100%;
@@ -145,57 +175,65 @@
           height: 100vh;
         }
         h2 {
-          font-size: 1.8em; /* Reduced from 2.2em */
-          padding: 15px;
+          font-size: 1.8em;
+          padding: 10px; /* Further reduced for visibility */
         }
         #input {
-          font-size: 16px; /* Reduced from 20px */
-          padding: 12px;
-        }
-        #fileInput {
           font-size: 16px;
+          padding: 10px;
+        }
+        .file-button {
+          width: 35px;
+          height: 35px;
+          font-size: 18px;
+          margin-left: 8px;
         }
         button {
-          font-size: 16px; /* Reduced from 20px */
-          padding: 12px 20px;
+          font-size: 16px;
+          padding: 10px 18px;
+          margin-left: 8px;
         }
         #messages {
           padding: 15px;
         }
         #messages li {
-          font-size: 16px; /* Reduced from 20px */
-          margin: 10px 0;
+          font-size: 16px;
+          margin: 8px 0;
         }
         #messages img {
-          max-height: 150px; /* Smaller images on mobile */
+          max-height: 150px;
         }
         #form {
-          padding: 15px; /* Reduced from 20px */
+          padding: 10px;
+          flex-wrap: wrap; /* Wrap if too narrow */
+        }
+        #input {
+          margin-bottom: 10px; /* In case of wrap */
         }
         .modal-content {
           width: 95%;
-          max-width: 320px; /* Reduced from 380px */
+          max-width: 320px;
           padding: 20px;
         }
         .modal-content h3 {
-          font-size: 1.5em; /* Reduced from 2em */
+          font-size: 1.5em;
         }
         .modal-content input {
-          font-size: 16px; /* Reduced from 20px */
-          padding: 12px;
+          font-size: 16px;
+          padding: 10px;
         }
         .modal-content button {
-          font-size: 16px; /* Reduced from 20px */
-          padding: 12px;
+          font-size: 16px;
+          padding: 10px;
         }
         .error {
-          font-size: 14px; /* Reduced from 18px */
+          font-size: 14px;
         }
       }
       /* Ensure viewport scaling */
       @media (max-width: 600px) {
         html {
-          font-size: 18px; /* Reduced from 22px */
+          font-size: 18px;
         }
       }
     </style>
@@ -213,7 +251,10 @@
       <h2>Socket.IO Chat</h2>
       <ul id="messages"></ul>
       <form id="form">
-        <input id="input" autocomplete="off" /><input type="file" id="fileInput" accept="image/*" /><button>Send</button>
+        <input id="input" autocomplete="off" />
+        <label for="fileInput" class="file-button">📎</label>
+        <input type="file" id="fileInput" />
+        <button>Send</button>
       </form>
     </div>
     <script src="/socket.io/socket.io.js"></script>
@@ -269,7 +310,7 @@
       // Focus on username input when modal appears
       usernameInput.focus();
 
-      // Handle form submission (text or image)
+      // Handle form submission (text or file)
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         if (input.value) {
@@ -278,13 +319,13 @@
         }
         if (fileInput.files.length > 0) {
           const file = fileInput.files[0];
-          if (file.size > 5 * 1024 * 1024) { // 5MB limit
-            alert("File size exceeds 5MB!");
+          if (file.size > 100 * 1024 * 1024) { // 100MB limit
+            alert("File size exceeds 100MB!");
             return;
           }
           const reader = new FileReader();
           reader.onload = () => {
-            socket.emit("image message", { user: username, image: reader.result });
+            socket.emit("file message", { user: username, fileName: file.name, data: reader.result });
             fileInput.value = ""; // Clear file input
           };
           reader.readAsDataURL(file);
@@ -299,10 +340,18 @@
         messages.scrollTop = messages.scrollHeight;
       });
 
-      // Display image messages
-      socket.on("image message", (data) => {
+      // Display file messages
+      socket.on("file message", (data) => {
         const item = document.createElement("li");
-        item.innerHTML = `<strong>${data.user}:</strong><br><img src="${data.image}" alt="Sent image" />`;
+        const mimeType = data.data.split(';')[0].split(':')[1] || '';
+        let content = `<strong>${data.user}:</strong> `;
+        if (mimeType.startsWith('image/')) {
+          content += `<img src="${data.data}" alt="${data.fileName}" />`;
+        } else {
+          content += `${data.fileName}`;
+        }
+        content += ` <a href="${data.data}" download="${data.fileName}">📥</a>`;
+        item.innerHTML = content;
         messages.appendChild(item);
         messages.scrollTop = messages.scrollHeight;
       });
