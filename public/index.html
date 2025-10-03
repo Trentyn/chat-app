@@ -51,44 +51,49 @@
         overflow: hidden;
         position: relative;
       }
-      h2 {
-        text-align: center;
-        padding: 15px;
+      .chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 15px;
         background-color: var(--header-bg);
         color: var(--header-text);
-        margin: 0;
         position: sticky;
         top: 0;
         z-index: 10;
+        height: 56px;
+      }
+      .chat-title {
         font-weight: 600;
         letter-spacing: 0.03em;
         font-size: 1.6em;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        flex: 1;
+        text-align: center;
+        margin: 0;
       }
       .night-toggle {
-        position: absolute;
-        right: 20px;
-        top: 15px;
-        z-index: 20;
         display: flex;
-        gap: 6px;
+        align-items: center;
+        margin-left: 10px;
       }
       .night-toggle button {
         background: none;
         border: none;
-        font-size: 1.5em;
+        font-size: 1.3em;
         cursor: pointer;
         color: var(--header-text);
         margin: 0 2px;
-        padding: 2px 6px;
+        padding: 2px 8px;
+        border-radius: 50%;
         transition: background 0.18s, color 0.18s;
-        border-radius: 4px;
+        outline: none;
+        height: 32px; width: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .night-toggle button.active {
-        background: rgba(255,255,255,0.18);
-        color: #ffe66d;
+        background: rgba(255,255,255,0.13);
       }
       #messages {
         list-style: none;
@@ -304,8 +309,9 @@
         background: #fff;
         box-shadow: 0 4px 24px rgba(0,0,0,0.18);
         cursor: grab;
-        position: absolute;
+        position: relative;
         left: 0; top: 0;
+        margin: auto;
       }
       #imageModalButtons {
         margin-bottom: 12px;
@@ -322,6 +328,11 @@
         padding: 8px 14px;
         cursor: pointer;
         transition: background 0.15s;
+        font-size: 1em;
+        height: 32px; width: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       #imageModalButtons button:hover {
         background: #007bff;
@@ -338,7 +349,8 @@
       @media (max-width: 600px) {
         body { font-size: 18px; }
         .chat-container { max-width: 100%; max-height: 95vh; border-radius: 0; margin-top: 0; }
-        h2 { font-size: 1.8em; padding: 10px; }
+        .chat-header { height: 50px; }
+        .chat-title { font-size: 1.2em; }
         #input { font-size: 16px; padding: 10px; }
         .file-button { width: 35px; height: 35px; font-size: 18px; margin-left: 8px; }
         button { font-size: 16px; padding: 10px 18px; margin-left: 8px; }
@@ -370,13 +382,12 @@
       </div>
     </div>
     <div class="chat-container hidden" id="chatContainer">
-      <h2>
-        Socket.IO Chat
+      <div class="chat-header">
+        <span class="chat-title">Socket.IO Chat</span>
         <span class="night-toggle" id="nightToggle">
-          <button id="dayBtn" title="Light mode">🌞</button>
-          <button id="nightBtn" title="Night mode">🌙</button>
+          <button id="toggleModeBtn" title="Switch mode">🌙</button>
         </span>
-      </h2>
+      </div>
       <ul id="messages"></ul>
       <form id="form">
         <input id="input" autocomplete="off" />
@@ -403,26 +414,24 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
       // Night mode logic
-      const nightBtn = document.getElementById("nightBtn");
-      const dayBtn = document.getElementById("dayBtn");
+      const toggleModeBtn = document.getElementById("toggleModeBtn");
       function setNightMode(isNight) {
         if(isNight) {
           document.body.classList.add('night');
-          nightBtn.classList.add('active');
-          dayBtn.classList.remove('active');
+          toggleModeBtn.textContent = "🌞";
           localStorage.setItem('nightMode','1');
         } else {
           document.body.classList.remove('night');
-          dayBtn.classList.add('active');
-          nightBtn.classList.remove('active');
+          toggleModeBtn.textContent = "🌙";
           localStorage.setItem('nightMode','0');
         }
       }
       // Init night mode from storage
       if(localStorage.getItem('nightMode') === '1') setNightMode(true);
       else setNightMode(false);
-      nightBtn.addEventListener("click", ()=>setNightMode(true));
-      dayBtn.addEventListener("click", ()=>setNightMode(false));
+      toggleModeBtn.addEventListener("click", ()=>{
+        setNightMode(!document.body.classList.contains('night'));
+      });
 
       const socket = io();
       const form = document.getElementById("form");
@@ -592,12 +601,12 @@
           content += `<img src="${msg.data}" alt="${msg.fileName}" style="cursor:pointer;" />`;
         } else if (mimeType.startsWith('audio/')) {
           content += `🎵 ${msg.fileName} <audio controls src="${msg.data}" style="vertical-align:middle;max-width:280px;"></audio>`;
-          content += `<a href="${msg.data}" download="${msg.fileName}" style="margin-left:8px;">⬇️ Download</a>`;
+          content += `<a href="${msg.data}" download="${msg.fileName}" style="margin-left:8px;">⬇️</a>`;
         } else if (mimeType.startsWith('video/')) {
           content += `🎬 ${msg.fileName} <video controls src="${msg.data}" style="max-width:280px;max-height:180px;border-radius:8px;cursor:pointer;"></video>`;
-          content += `<a href="${msg.data}" download="${msg.fileName}" style="margin-left:8px;">⬇️ Download</a>`;
+          content += `<a href="${msg.data}" download="${msg.fileName}" style="margin-left:8px;">⬇️</a>`;
         } else {
-          content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥 Download</a>`;
+          content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥</a>`;
         }
         item.innerHTML = content;
         messages.appendChild(item);
