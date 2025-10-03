@@ -13,22 +13,25 @@
         font: 16px Arial, sans-serif;
         display: flex;
         justify-content: center;
-        align-items: center;
+        align-items: flex-start;
         min-height: 100vh;
         background-color: #f0f0f0;
         margin: 0;
         overflow-x: hidden;
+        padding-top: 40px;
       }
       .chat-container {
         width: 100%;
-        max-width: 600px;
-        height: 100vh;
+        max-width: 500px;
+        max-height: 700px;
+        margin-top: 40px;
         display: flex;
         flex-direction: column;
         background-color: #fff;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         border-radius: 8px;
         overflow: hidden;
+        position: relative;
       }
       h2 {
         text-align: center;
@@ -43,11 +46,11 @@
       #messages {
         list-style: none;
         padding: 20px;
-        flex-grow: 1;
+        height: 400px;
+        max-height: 60vh;
         overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
+        display: block;
+        background: #fff;
       }
       #messages li {
         margin: 10px 0;
@@ -187,8 +190,9 @@
         }
         .chat-container {
           max-width: 100%;
+          max-height: 95vh;
           border-radius: 0;
-          height: 100vh;
+          margin-top: 0;
         }
         h2 {
           font-size: 1.8em;
@@ -210,7 +214,9 @@
           margin-left: 8px;
         }
         #messages {
-          padding: 15px;
+          height: 55vh;
+          max-height: 60vh;
+          padding: 12px;
         }
         #messages li {
           font-size: 16px;
@@ -458,3 +464,4 @@
     </script>
   </body>
 </html>
+
