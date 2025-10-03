@@ -451,15 +451,22 @@
         if (msg.type === "text") {
           item.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
         } else if (msg.type === "file") {
-          const mimeTypeMatch = msg.data.match(/^data:([^;]+);/);
-          const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
-          let content = `<strong>${msg.user}:</strong> `;
-          if (mimeType.startsWith('image/')) {
-            content += `<img src="${msg.data}" alt="${msg.fileName}" />`;
+          // If fileType is present but no data, render a placeholder
+          if (!msg.data) {
+            let label = msg.fileType === "image" ? "*image*" : "*file*";
+            item.innerHTML = `<strong>${msg.user}:</strong> ${label} (${msg.fileName})`;
           } else {
-            content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥 Download</a>`;
+            // If data is present, render as before
+            const mimeTypeMatch = msg.data.match(/^data:([^;]+);/);
+            const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
+            let content = `<strong>${msg.user}:</strong> `;
+            if (mimeType.startsWith('image/')) {
+              content += `<img src="${msg.data}" alt="${msg.fileName}" />`;
+            } else {
+              content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥 Download</a>`;
+            }
+            item.innerHTML = content;
           }
-          item.innerHTML = content;
         }
         messages.appendChild(item);
       }
@@ -491,3 +498,4 @@
     </script>
   </body>
 </html>
+
