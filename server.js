@@ -7,6 +7,10 @@ const io = new Server(server, {
   maxHttpBufferSize: 200 * 1024 * 1024 // 200MB to account for base64 overhead
 });
 
+// Increase body parser limits for large POST requests (used in polling transport)
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ limit: '200mb', extended: true }));
+
 // Serve static files (our frontend)
 app.use(express.static("public"));
 
