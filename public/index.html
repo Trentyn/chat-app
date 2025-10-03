@@ -32,11 +32,11 @@
       }
       h2 {
         text-align: center;
-        padding: 15px; /* Reduced padding for mobile visibility */
+        padding: 15px;
         background-color: #007bff;
         color: white;
         margin: 0;
-        position: sticky; /* Make header sticky */
+        position: sticky;
         top: 0;
         z-index: 10;
       }
@@ -76,7 +76,7 @@
         padding: 12px;
         background-color: #f9f9f9;
         align-items: center;
-        position: sticky; /* Make form sticky at bottom */
+        position: sticky;
         bottom: 0;
         z-index: 10;
       }
@@ -88,7 +88,7 @@
         font-size: 16px;
       }
       #fileInput {
-        display: none; /* Hide the file input */
+        display: none;
       }
       .file-button {
         display: flex;
@@ -100,7 +100,7 @@
         border-radius: 4px;
         cursor: pointer;
         margin-left: 10px;
-        font-size: 20px; /* Icon size */
+        font-size: 20px;
       }
       button {
         padding: 12px 20px;
@@ -114,6 +114,22 @@
       }
       button:hover {
         background-color: #0056b3;
+      }
+      #attachedFile {
+        margin-left: 10px;
+        font-size: 14px;
+        color: #555;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+      }
+      #progressContainer {
+        margin-left: 10px;
+        display: none;
+      }
+      progress {
+        width: 100px;
       }
       /* Modal styles */
       .modal {
@@ -176,7 +192,7 @@
         }
         h2 {
           font-size: 1.8em;
-          padding: 10px; /* Further reduced for visibility */
+          padding: 10px;
         }
         #input {
           font-size: 16px;
@@ -205,10 +221,17 @@
         }
         #form {
           padding: 10px;
-          flex-wrap: wrap; /* Wrap if too narrow */
+          flex-wrap: wrap;
         }
         #input {
-          margin-bottom: 10px; /* In case of wrap */
+          margin-bottom: 10px;
+        }
+        #attachedFile {
+          max-width: 120px;
+          font-size: 12px;
+        }
+        progress {
+          width: 80px;
         }
         .modal-content {
           width: 95%;
@@ -254,7 +277,9 @@
         <input id="input" autocomplete="off" />
         <label for="fileInput" class="file-button">📎</label>
         <input type="file" id="fileInput" />
-        <button>Send</button>
+        <span id="attachedFile"></span>
+        <div id="progressContainer"><progress id="uploadProgress" value="0" max="100"></progress></div>
+        <button id="sendButton">Send</button>
       </form>
     </div>
     <script src="/socket.io/socket.io.js"></script>
@@ -263,6 +288,10 @@
       const form = document.getElementById("form");
       const input = document.getElementById("input");
       const fileInput = document.getElementById("fileInput");
+      const attachedFile = document.getElementById("attachedFile");
+      const progressContainer = document.getElementById("progressContainer");
+      const uploadProgress = document.getElementById("uploadProgress");
+      const sendButton = document.getElementById("sendButton");
       const messages = document.getElementById("messages");
       const usernameModal = document.getElementById("usernameModal");
       const usernameInput = document.getElementById("usernameInput");
@@ -271,6 +300,7 @@
       const usernameError = document.getElementById("usernameError");
 
       let username = "";
+      let isUploading = false;
 
       // Handle username submission
       submitUsername.addEventListener("click", () => {
@@ -310,23 +340,62 @@
       // Focus on username input when modal appears
       usernameInput.focus();
 
+      // Show attached file name when file is selected
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files.length > 0) {
+          attachedFile.textContent = `Attached: ${fileInput.files[0].name}`;
+        } else {
+          attachedFile.textContent = "";
+        }
+      });
+
       // Handle form submission (text or file)
       form.addEventListener("submit", (e) => {
         e.preventDefault();
-        if (input.value) {
-          socket.emit("chat message", { user: username, text: input.value });
+        if (isUploading) return; // Prevent multiple submits
+
+        const textToSend = input.value.trim();
+        const hasFile = fileInput.files.length > 0;
+
+        if (!textToSend && !hasFile) return; // Nothing to send
+
+        if (textToSend) {
+          socket.emit("chat message", { user: username, text: textToSend });
           input.value = "";
         }
-        if (fileInput.files.length > 0) {
+
+        if (hasFile) {
           const file = fileInput.files[0];
           if (file.size > 100 * 1024 * 1024) { // 100MB limit
             alert("File size exceeds 100MB!");
             return;
           }
+
+          isUploading = true;
+          sendButton.disabled = true;
+          progressContainer.style.display = "block";
+          uploadProgress.value = 0;
+
           const reader = new FileReader();
+          reader.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = (event.loaded / event.total) * 100;
+              uploadProgress.value = percent;
+            }
+          };
           reader.onload = () => {
             socket.emit("file message", { user: username, fileName: file.name, data: reader.result });
             fileInput.value = ""; // Clear file input
+            attachedFile.textContent = "";
+            progressContainer.style.display = "none";
+            isUploading = false;
+            sendButton.disabled = false;
+          };
+          reader.onerror = () => {
+            alert("Error reading file!");
+            progressContainer.style.display = "none";
+            isUploading = false;
+            sendButton.disabled = false;
           };
           reader.readAsDataURL(file);
         }
