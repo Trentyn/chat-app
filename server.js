@@ -7,45 +7,66 @@ const io = new Server(server, {
   maxHttpBufferSize: 200 * 1024 * 1024 // 200MB to account for base64 overhead
 });
 
-// Increase body parser limits for large POST requests (used in polling transport)
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ limit: '200mb', extended: true }));
-
-// Serve static files (our frontend)
 app.use(express.static("public"));
 
-const usernames = new Set(); // Track active usernames
+const usernames = new Set();
+let messages = []; // Store all chat messages
+
+function cleanOldMessages() {
+  const now = Date.now();
+  // Filter only messages from last 24 hours
+  messages = messages.filter(msg => now - msg.timestamp < 24 * 60 * 60 * 1000);
+}
+
+// Clean every hour
+setInterval(cleanOldMessages, 60 * 60 * 1000);
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
-  // Handle join request
   socket.on("join", (username) => {
     if (usernames.has(username)) {
       socket.emit("username taken");
     } else {
       usernames.add(username);
-      socket.username = username; // Store username on socket
+      socket.username = username;
+      // Clean before sending
+      cleanOldMessages();
+      // Send chat history to new user
+      socket.emit("chat history", messages);
+
       socket.emit("joined");
     }
   });
 
-  // Handle text messages
   socket.on("chat message", (data) => {
-    console.log(`${data.user}: ${data.text}`);
-    io.emit("chat message", data); // Broadcast name + message
+    const msg = {
+      type: "text",
+      user: data.user,
+      text: data.text,
+      timestamp: Date.now()
+    };
+    messages.push(msg);
+    io.emit("chat message", msg);
   });
 
-  // Handle file messages
   socket.on("file message", (data) => {
-    console.log(`${data.user} sent a file: ${data.fileName}`);
-    io.emit("file message", data); // Broadcast name + fileName + data
+    const msg = {
+      type: "file",
+      user: data.user,
+      fileName: data.fileName,
+      data: data.data,
+      timestamp: Date.now()
+    };
+    messages.push(msg);
+    io.emit("file message", msg);
   });
 
-  // Handle disconnect
   socket.on("disconnect", () => {
     if (socket.username) {
-      usernames.delete(socket.username); // Free the username
+      usernames.delete(socket.username);
     }
     console.log("User disconnected:", socket.id);
   });
