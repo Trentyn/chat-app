@@ -451,12 +451,11 @@
         if (msg.type === "text") {
           item.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
         } else if (msg.type === "file") {
-          // If fileType is present but no data, render a placeholder
           if (!msg.data) {
             let label = msg.fileType === "image" ? "*image*" : "*file*";
             item.innerHTML = `<strong>${msg.user}:</strong> ${label} (${msg.fileName})`;
           } else {
-            // If data is present, render as before
+            // Show actual file
             const mimeTypeMatch = msg.data.match(/^data:([^;]+);/);
             const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
             let content = `<strong>${msg.user}:</strong> `;
@@ -498,4 +497,5 @@
     </script>
   </body>
 </html>
+
 
