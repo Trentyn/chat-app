@@ -7,8 +7,8 @@ const io = new Server(server, {
   maxHttpBufferSize: 200 * 1024 * 1024 // 200MB to account for base64 overhead
 });
 
-app.use(express.json({ limit: '200mb' }));
-app.use(express.urlencoded({ limit: '200mb', extended: true }));
+app.use(express.json({ limit: '51mb' }));
+app.use(express.urlencoded({ limit: '51mb', extended: true }));
 app.use(express.static("public"));
 
 const usernames = new Set();
@@ -76,3 +76,4 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
