@@ -3,46 +3,121 @@
   <head>
     <title>Chat App</title>
     <style>
-      body { font: 16px Arial; }
-      #messages { list-style: none; padding: 0; }
-      #messages li { margin: 5px 0; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font: 16px Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #f0f0f0;
+        margin: 0;
+        overflow-x: hidden;
+      }
+      .chat-container {
+        width: 100%;
+        max-width: 600px; /* Limits max width for larger screens */
+        height: 100vh; /* Full viewport height */
+        display: flex;
+        flex-direction: column;
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      h2 {
+        text-align: center;
+        padding: 20px;
+        background-color: #007bff;
+        color: white;
+        margin: 0;
+      }
+      #messages {
+        list-style: none;
+        padding: 20px;
+        flex-grow: 1; /* Takes remaining space */
+        overflow-y: auto; /* Scrollable messages */
+      }
+      #messages li {
+        margin: 10px 0;
+        word-wrap: break-word; /* Ensures long words wrap */
+      }
+      #form {
+        display: flex;
+        padding: 10px;
+        background-color: #f9f9f9;
+      }
+      #input {
+        flex-grow: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+      }
+      button {
+        padding: 10px 20px;
+        margin-left: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      /* Responsive design for smaller screens */
+      @media (max-width: 600px) {
+        .chat-container {
+          max-width: 100%;
+          border-radius: 0; /* Remove border radius on mobile */
+          height: 100vh; /* Ensure full height on mobile */
+        }
+        h2 {
+          font-size: 1.5em;
+        }
+        #input, button {
+          font-size: 14px;
+        }
+      }
     </style>
   </head>
   <body>
-    <h2>Socket.IO Chat</h2>
-    <ul id="messages"></ul>
-    <form id="form">
-      <input id="input" autocomplete="off" /><button>Send</button>
-    </form>
-
+    <div class="chat-container">
+      <h2>Socket.IO Chat</h2>
+      <ul id="messages"></ul>
+      <form id="form">
+        <input id="input" autocomplete="off" /><button>Send</button>
+      </form>
+    </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-    const socket = io();
-    const form = document.getElementById("form");
-    const input = document.getElementById("input");
-    const messages = document.getElementById("messages");
-
-    // Ask for username
-    let username = "";
-    while (!username) {
+      const socket = io();
+      const form = document.getElementById("form");
+      const input = document.getElementById("input");
+      const messages = document.getElementById("messages");
+      // Ask for username
+      let username = "";
+      while (!username) {
         username = prompt("Enter your name:");
-    }
-
-    form.addEventListener("submit", (e) => {
+      }
+      form.addEventListener("submit", (e) => {
         e.preventDefault();
         if (input.value) {
-        // send both name + message
-        socket.emit("chat message", { user: username, text: input.value });
-        input.value = "";
+          socket.emit("chat message", { user: username, text: input.value });
+          input.value = "";
         }
-    });
-
-    socket.on("chat message", (data) => {
+      });
+      socket.on("chat message", (data) => {
         const item = document.createElement("li");
         item.innerHTML = `<strong>${data.user}:</strong> ${data.text}`;
         messages.appendChild(item);
-        window.scrollTo(0, document.body.scrollHeight);
-    });
+        messages.scrollTop = messages.scrollHeight; /* Scroll to bottom */
+      });
     </script>
   </body>
 </html>
