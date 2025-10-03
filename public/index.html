@@ -42,9 +42,9 @@
         padding: 20px;
         flex-grow: 1;
         overflow-y: auto;
-        display: flex; /* Added for bottom alignment */
+        display: flex;
         flex-direction: column;
-        justify-content: flex-end; /* Align messages to bottom when few */
+        justify-content: flex-end; /* Align messages to bottom */
       }
       #messages li {
         margin: 10px 0;
@@ -52,24 +52,25 @@
       }
       #form {
         display: flex;
-        padding: 10px;
+        padding: 15px; /* Increased padding */
         background-color: #f9f9f9;
       }
       #input {
         flex-grow: 1;
-        padding: 10px;
+        padding: 15px; /* Larger input area */
         border: 1px solid #ccc;
         border-radius: 4px;
-        font-size: 16px;
+        font-size: 18px; /* Larger font */
       }
       button {
-        padding: 10px 20px;
+        padding: 15px 25px; /* Larger button */
         margin-left: 10px;
         background-color: #007bff;
         color: white;
         border: none;
         border-radius: 4px;
         cursor: pointer;
+        font-size: 18px; /* Larger font */
       }
       button:hover {
         background-color: #0056b3;
@@ -89,7 +90,7 @@
       }
       .modal-content {
         background-color: white;
-        padding: 20px;
+        padding: 25px;
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         text-align: center;
@@ -98,27 +99,27 @@
       }
       .modal-content h3 {
         margin-bottom: 15px;
-        font-size: 1.5em;
+        font-size: 1.8em; /* Larger heading */
       }
       .modal-content input {
         width: 100%;
-        padding: 12px;
+        padding: 15px;
         margin-bottom: 15px;
         border: 1px solid #ccc;
         border-radius: 4px;
-        font-size: 16px;
+        font-size: 18px;
       }
       .modal-content button {
         width: 100%;
         max-width: 200px;
         margin: 0 auto;
-        padding: 12px;
-        font-size: 16px;
+        padding: 15px;
+        font-size: 18px;
       }
       .error {
         color: red;
         margin-top: 10px;
-        font-size: 14px;
+        font-size: 16px;
       }
       .hidden {
         display: none;
@@ -126,7 +127,7 @@
       /* Responsive design for smaller screens */
       @media (max-width: 600px) {
         body {
-          font-size: 20px; /* Further increased for better readability */
+          font-size: 22px; /* Increased for mobile */
         }
         .chat-container {
           max-width: 100%;
@@ -134,51 +135,51 @@
           height: 100vh;
         }
         h2 {
-          font-size: 2em;
-          padding: 20px;
+          font-size: 2.2em;
+          padding: 25px;
         }
         #input {
-          font-size: 18px;
-          padding: 15px;
+          font-size: 20px;
+          padding: 20px; /* Larger input */
         }
         button {
-          font-size: 18px;
-          padding: 15px 25px;
+          font-size: 20px;
+          padding: 20px 30px; /* Larger button */
         }
         #messages {
-          padding: 15px;
+          padding: 20px;
         }
         #messages li {
-          font-size: 18px;
+          font-size: 20px;
           margin: 15px 0;
         }
         #form {
-          padding: 15px;
+          padding: 20px; /* Larger form area */
         }
         .modal-content {
           width: 95%;
-          max-width: 350px;
-          padding: 25px;
+          max-width: 380px; /* Larger modal */
+          padding: 30px;
         }
         .modal-content h3 {
-          font-size: 1.6em;
+          font-size: 2em;
         }
         .modal-content input {
-          font-size: 18px;
-          padding: 15px;
+          font-size: 20px;
+          padding: 20px;
         }
         .modal-content button {
-          font-size: 18px;
-          padding: 15px;
+          font-size: 20px;
+          padding: 20px;
         }
         .error {
-          font-size: 16px;
+          font-size: 18px;
         }
       }
       /* Ensure viewport scaling */
       @media (max-width: 600px) {
         html {
-          font-size: 20px; /* Further increased root font size */
+          font-size: 22px; /* Larger root font size */
         }
       }
     </style>
