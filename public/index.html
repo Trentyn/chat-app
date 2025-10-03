@@ -59,10 +59,20 @@
         align-items: center;
       }
       #messages img {
-        max-width: 100%;
-        max-height: 200px;
+        max-width: 180px;
+        max-height: 140px;
         border-radius: 8px;
         margin-right: 10px;
+        cursor: pointer;
+        transition: box-shadow 0.2s;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      }
+      #messages audio,
+      #messages video {
+        margin-left: 10px;
+        border-radius: 8px;
+        max-width: 280px;
+        max-height: 180px;
       }
       #messages a {
         text-decoration: none;
@@ -127,13 +137,6 @@
         text-overflow: ellipsis;
         max-width: 150px;
       }
-      #progressContainer {
-        margin-left: 10px;
-        display: none;
-      }
-      progress {
-        width: 100px;
-      }
       .modal {
         display: flex;
         position: fixed;
@@ -182,6 +185,63 @@
       .hidden {
         display: none;
       }
+      /* Image modal styles */
+      #imageModal {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0,0,0,0.65);
+        z-index: 2000;
+        transition: opacity 0.2s;
+      }
+      #imageModal.hidden {
+        display: none;
+        opacity: 0;
+      }
+      #imageModalContent {
+        position: relative;
+        max-width: 90vw;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: none;
+      }
+      #imageModalClose {
+        position: absolute;
+        top: 10px; right: 10px;
+        font-size: 2em;
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        z-index: 2;
+      }
+      #modalImage {
+        max-width: 85vw;
+        max-height: 80vh;
+        object-fit: contain;
+        border-radius: 8px;
+        transition: transform 0.2s;
+        background: #fff;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+      }
+      #imageModalContent button {
+        background: rgba(40,40,40,0.8);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 14px;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      #imageModalContent button:hover {
+        background: #007bff;
+        color: white;
+      }
       @media (max-width: 600px) {
         body {
           font-size: 18px;
@@ -221,7 +281,12 @@
           margin: 8px 0;
         }
         #messages img {
-          max-height: 150px;
+          max-height: 120px;
+        }
+        #messages audio,
+        #messages video {
+          max-width: 220px;
+          max-height: 120px;
         }
         #form {
           padding: 10px;
@@ -233,9 +298,6 @@
         #attachedFile {
           max-width: 120px;
           font-size: 12px;
-        }
-        progress {
-          width: 80px;
         }
         .modal-content {
           width: 95%;
@@ -281,9 +343,20 @@
         <label for="fileInput" class="file-button">📎</label>
         <input type="file" id="fileInput" />
         <span id="attachedFile"></span>
-        <div id="progressContainer"><progress id="uploadProgress" value="0" max="100"></progress></div>
         <button id="sendButton">Send</button>
       </form>
+    </div>
+    <!-- Image Modal for inspecting images -->
+    <div id="imageModal" class="hidden">
+      <div id="imageModalContent">
+        <button id="imageModalClose">✖</button>
+        <img id="modalImage" src="" alt="Preview" />
+        <div style="margin-top:12px;display:flex;gap:10px;">
+          <button id="zoomIn">🔍+</button>
+          <button id="zoomOut">🔍−</button>
+          <button id="openInNew">🌐 Open in new tab</button>
+        </div>
+      </div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -299,13 +372,23 @@
       const submitUsername = document.getElementById("submitUsername");
       const chatContainer = document.getElementById("chatContainer");
       const usernameError = document.getElementById("usernameError");
-      
+
+      // Image modal elements
+      const imageModal = document.getElementById("imageModal");
+      const imageModalContent = document.getElementById("imageModalContent");
+      const imageModalClose = document.getElementById("imageModalClose");
+      const modalImage = document.getElementById("modalImage");
+      const zoomIn = document.getElementById("zoomIn");
+      const zoomOut = document.getElementById("zoomOut");
+      const openInNew = document.getElementById("openInNew");
+      let currentZoom = 1;
+
       let username = "";
       let isUploading = false;
       let uploadMessageLi = null;
       let sendingTimeout = null;
       let sendingAnimationInterval = null;
-      
+
       // Handle username submission
       submitUsername.addEventListener("click", () => {
         const inputValue = usernameInput.value.trim();
@@ -315,30 +398,30 @@
           showError("Please enter a name!");
         }
       });
-      
+
       usernameInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
           submitUsername.click();
         }
       });
-      
+
       socket.on("username taken", () => {
         showError("Username is already taken!");
       });
-      
+
       socket.on("joined", () => {
         username = usernameInput.value.trim();
         usernameModal.classList.add("hidden");
         chatContainer.classList.remove("hidden");
       });
-      
+
       function showError(message) {
         usernameError.textContent = message;
         usernameError.style.display = "block";
       }
-      
+
       usernameInput.focus();
-      
+
       fileInput.addEventListener("change", () => {
         if (fileInput.files.length > 0) {
           attachedFile.textContent = `Attached: ${fileInput.files[0].name}`;
@@ -346,17 +429,17 @@
           attachedFile.textContent = "";
         }
       });
-      
+
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const textToSend = input.value.trim();
         const hasFile = fileInput.files.length > 0;
-      
+
         if (textToSend) {
           socket.emit("chat message", { user: username, text: textToSend });
           input.value = "";
         }
-      
+
         if (hasFile && !isUploading) {
           const file = fileInput.files[0];
           if (file.size > 100 * 1024 * 1024) { // 100MB limit
@@ -365,14 +448,14 @@
           }
           isUploading = true;
           fileInput.disabled = true;
-      
+
           // Add "Sending..." message
           uploadMessageLi = document.createElement("li");
           uploadMessageLi.innerHTML =
             `<strong>${username}:</strong> Sending <em>${file.name}</em>... <span id="sendingStatus">⏳</span>`;
           messages.appendChild(uploadMessageLi);
           messages.scrollTop = messages.scrollHeight;
-      
+
           // Dynamic "⏳" animation
           let dots = 1;
           sendingAnimationInterval = setInterval(() => {
@@ -381,7 +464,7 @@
             uploadMessageLi.querySelector("#sendingStatus").textContent = dotStr;
             dots = (dots % 3) + 1;
           }, 500);
-      
+
           // Read and send file
           const reader = new FileReader();
           reader.onload = () => {
@@ -390,12 +473,12 @@
               fileName: file.name,
               data: reader.result,
             });
-      
+
             fileInput.value = "";
             attachedFile.textContent = "";
             isUploading = false;
             fileInput.disabled = false;
-      
+
             // Timeout for server acknowledgement (e.g. 30s)
             sendingTimeout = setTimeout(() => {
               if (uploadMessageLi && uploadMessageLi.parentNode) {
@@ -416,11 +499,11 @@
             if (sendingTimeout) clearTimeout(sendingTimeout);
             if (sendingAnimationInterval) clearInterval(sendingAnimationInterval);
           };
-      
+
           reader.readAsDataURL(file);
         }
       });
-      
+
       // Render a single message (text only for history)
       function renderMessage(msg) {
         const item = document.createElement("li");
@@ -429,17 +512,41 @@
           messages.appendChild(item);
         }
       }
-      
+
+      // Render a file message (audio, video, image, generic)
+      function renderFileMessage(msg) {
+        const item = document.createElement("li");
+        const mimeTypeMatch = msg.data.match(/^data:([^;]+);/);
+        const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
+        let content = `<strong>${msg.user}:</strong> `;
+
+        if (mimeType.startsWith('image/')) {
+          content += `<img src="${msg.data}" alt="${msg.fileName}" style="cursor:pointer;" />`;
+        } else if (mimeType.startsWith('audio/')) {
+          content += `🎵 ${msg.fileName} <audio controls src="${msg.data}" style="vertical-align:middle;max-width:280px;"></audio>`;
+        } else if (mimeType.startsWith('video/')) {
+          content += `🎬 ${msg.fileName} <video controls src="${msg.data}" style="max-width:280px;max-height:180px;border-radius:8px;"></video>`;
+        } else {
+          content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥 Download</a>`;
+        }
+        item.innerHTML = content;
+        messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      // Display chat history (received on join)
       socket.on("chat history", (history) => {
         messages.innerHTML = ""; // Clear messages
         history.forEach(renderMessage);
       });
-      
+
+      // Display new text message
       socket.on("chat message", (msg) => {
         renderMessage(msg);
         messages.scrollTop = messages.scrollHeight;
       });
-      
+
+      // Display new file message (live only)
       socket.on("file message", (msg) => {
         // Remove "Sending..." status if present
         if (uploadMessageLi && uploadMessageLi.parentNode) {
@@ -448,21 +555,37 @@
           if (sendingTimeout) clearTimeout(sendingTimeout);
           if (sendingAnimationInterval) clearInterval(sendingAnimationInterval);
         }
-        // Render live file/image
-        const item = document.createElement("li");
-        const mimeTypeMatch = msg.data.match(/^data:([^;]+);/);
-        const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
-        let content = `<strong>${msg.user}:</strong> `;
-        if (mimeType.startsWith('image/')) {
-          content += `<img src="${msg.data}" alt="${msg.fileName}" />`;
-        } else {
-          content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥 Download</a>`;
+        renderFileMessage(msg);
+      });
+
+      // Image modal logic
+      messages.addEventListener("click", function(e) {
+        if (e.target.tagName === "IMG") {
+          modalImage.src = e.target.src;
+          modalImage.style.transform = "scale(1)";
+          currentZoom = 1;
+          imageModal.classList.remove("hidden");
         }
-        item.innerHTML = content;
-        messages.appendChild(item);
-        messages.scrollTop = messages.scrollHeight;
+      });
+      imageModalClose.addEventListener("click", () => {
+        imageModal.classList.add("hidden");
+      });
+      imageModal.addEventListener("click", (e) => {
+        if (e.target === imageModal) {
+          imageModal.classList.add("hidden");
+        }
+      });
+      zoomIn.addEventListener("click", () => {
+        currentZoom = Math.min(currentZoom + 0.25, 4);
+        modalImage.style.transform = `scale(${currentZoom})`;
+      });
+      zoomOut.addEventListener("click", () => {
+        currentZoom = Math.max(currentZoom - 0.25, 0.5);
+        modalImage.style.transform = `scale(${currentZoom})`;
+      });
+      openInNew.addEventListener("click", () => {
+        window.open(modalImage.src, "_blank");
       });
     </script>
   </body>
 </html>
-
