@@ -53,10 +53,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("file message", (data) => {
-    // Broadcast file (with data) to all currently connected users
+    // 1. Broadcast the actual file to all connected users
     io.emit("file message", data);
   
-    // Save only a placeholder in history (no data)
+    // 2. Save only a placeholder in history (no .data)
     const mimeTypeMatch = data.data.match(/^data:([^;]+);/);
     const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
     let fileType = 'file';
@@ -68,6 +68,7 @@ io.on("connection", (socket) => {
       fileName: data.fileName,
       fileType: fileType,
       timestamp: Date.now()
+      // NO .data field here!
     };
     messages.push(msg);
   });
@@ -84,5 +85,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
 
