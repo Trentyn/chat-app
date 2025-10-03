@@ -370,34 +370,54 @@
             alert("File size exceeds 100MB!");
             return;
           }
-
+        
+          // Show progress UI
           isUploading = true;
           sendButton.disabled = true;
+          input.disabled = true;
+          fileInput.disabled = true;
           progressContainer.style.display = "block";
           uploadProgress.value = 0;
-
+        
           const reader = new FileReader();
+        
+          // Update progress bar
           reader.onprogress = (event) => {
             if (event.lengthComputable) {
               const percent = (event.loaded / event.total) * 100;
               uploadProgress.value = percent;
             }
           };
+        
           reader.onload = () => {
-            socket.emit("file message", { user: username, fileName: file.name, data: reader.result });
-            fileInput.value = ""; // Clear file input
+            socket.emit("file message", {
+              user: username,
+              fileName: file.name,
+              data: reader.result,
+            });
+        
+            // Reset form UI after upload
+            fileInput.value = "";
             attachedFile.textContent = "";
             progressContainer.style.display = "none";
+            uploadProgress.value = 0;
             isUploading = false;
             sendButton.disabled = false;
+            input.disabled = false;
+            fileInput.disabled = false;
           };
+        
           reader.onerror = () => {
             alert("Error reading file!");
             progressContainer.style.display = "none";
+            uploadProgress.value = 0;
             isUploading = false;
             sendButton.disabled = false;
+            input.disabled = false;
+            fileInput.disabled = false;
           };
-          reader.readAsDataURL(file);
+        
+          reader.readAsDataURL(file); // This works for all file types
         }
       });
 
@@ -435,4 +455,5 @@
     </script>
   </body>
 </html>
+
 
