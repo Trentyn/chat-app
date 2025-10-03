@@ -54,7 +54,7 @@
       .chat-header {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center; /* Center everything horizontally */
         padding: 0 15px;
         background-color: var(--header-bg);
         color: var(--header-text);
@@ -62,19 +62,22 @@
         top: 0;
         z-index: 10;
         height: 56px;
+        position: relative;
       }
       .chat-title {
         font-weight: 600;
         letter-spacing: 0.03em;
         font-size: 1.6em;
-        flex: 1;
+        flex: 1 0 auto;
         text-align: center;
         margin: 0;
       }
       .night-toggle {
+        position: absolute;
+        right: 15px;
+        top: 12px;
         display: flex;
         align-items: center;
-        margin-left: 10px;
       }
       .night-toggle button {
         background: none;
@@ -739,3 +742,4 @@
     </script>
   </body>
 </html>
+
