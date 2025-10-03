@@ -182,9 +182,8 @@
       .hidden {
         display: none !important;
       }
-
-      /* Image/Video modal styles */
-      #inspectModal {
+      /* Image modal styles */
+      #imageModal {
         position: fixed;
         top: 0; left: 0;
         width: 100vw; height: 100vh;
@@ -195,8 +194,8 @@
         z-index: 2000;
         transition: opacity 0.2s;
       }
-      #inspectModal.hidden { display: none !important; opacity: 0; }
-      #inspectModalContent {
+      #imageModal.hidden { display: none !important; opacity: 0; }
+      #imageModalContent {
         position: relative;
         max-width: 96vw;
         max-height: 96vh;
@@ -206,7 +205,7 @@
         background: none;
         z-index: 2;
       }
-      #modalClose {
+      #imageModalClose {
         position: absolute;
         top: 10px; right: 10px;
         font-size: 2em;
@@ -216,7 +215,7 @@
         cursor: pointer;
         z-index: 10;
       }
-      #modalMediaWrapper {
+      #imageModalWrapper {
         position: relative;
         overflow: hidden;
         width: 90vw;
@@ -226,7 +225,7 @@
         justify-content: center;
         background: transparent;
       }
-      #modalImage, #modalVideo {
+      #modalImage {
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
@@ -238,15 +237,14 @@
         position: absolute;
         left: 0; top: 0;
       }
-      #modalVideo { background: #000; }
-      #inspectModalButtons {
+      #imageModalButtons {
         margin-bottom: 12px;
         display: flex;
         gap: 10px;
         z-index: 5;
         position: relative;
       }
-      #inspectModalButtons button {
+      #imageModalButtons button {
         background: rgba(40,40,40,0.8);
         color: white;
         border: none;
@@ -255,7 +253,7 @@
         cursor: pointer;
         transition: background 0.15s;
       }
-      #inspectModalButtons button:hover {
+      #imageModalButtons button:hover {
         background: #007bff;
         color: white;
       }
@@ -304,19 +302,17 @@
         <button id="sendButton">Send</button>
       </form>
     </div>
-    <!-- Modal for inspecting images and videos -->
-    <div id="inspectModal" class="hidden">
-      <div id="inspectModalContent">
-        <button id="modalClose">✖</button>
-        <div id="inspectModalButtons">
+    <!-- Modal for inspecting images only -->
+    <div id="imageModal" class="hidden">
+      <div id="imageModalContent">
+        <button id="imageModalClose">✖</button>
+        <div id="imageModalButtons">
           <button id="zoomIn">🔍+</button>
           <button id="zoomOut">🔍−</button>
-          <button id="fullscreenBtn">⛶ Fullscreen</button>
-          <button id="downloadBtn">⬇️ Download</button>
+          <button id="downloadBtn">⬇️</button>
         </div>
-        <div id="modalMediaWrapper">
-          <img id="modalImage" src="" alt="Preview" style="display:none;" />
-          <video id="modalVideo" style="display:none;" controls></video>
+        <div id="imageModalWrapper">
+          <img id="modalImage" src="" alt="Preview" />
         </div>
       </div>
     </div>
@@ -335,17 +331,15 @@
       const chatContainer = document.getElementById("chatContainer");
       const usernameError = document.getElementById("usernameError");
 
-      // Modal elements
-      const inspectModal = document.getElementById("inspectModal");
-      const inspectModalContent = document.getElementById("inspectModalContent");
-      const modalClose = document.getElementById("modalClose");
+      // Image modal elements
+      const imageModal = document.getElementById("imageModal");
+      const imageModalContent = document.getElementById("imageModalContent");
+      const imageModalClose = document.getElementById("imageModalClose");
       const zoomInBtn = document.getElementById("zoomIn");
       const zoomOutBtn = document.getElementById("zoomOut");
-      const fullscreenBtn = document.getElementById("fullscreenBtn");
       const downloadBtn = document.getElementById("downloadBtn");
       const modalImage = document.getElementById("modalImage");
-      const modalVideo = document.getElementById("modalVideo");
-      const modalMediaWrapper = document.getElementById("modalMediaWrapper");
+      const imageModalWrapper = document.getElementById("imageModalWrapper");
 
       let username = "";
       let isUploading = false;
@@ -528,36 +522,19 @@
         renderFileMessage(msg);
       });
 
-      // ----------- MODAL LOGIC (image/video inspection) -----------
-      function openMediaModal(type, src) {
-        inspectModal.classList.remove('hidden');
+      // ----------- MODAL LOGIC (image inspection only) -----------
+      function openImageModal(src) {
+        imageModal.classList.remove('hidden');
         currentZoom = 1;
         panX = 0; panY = 0;
         setTransform(0,0,1);
-        modalImage.style.display = 'none';
-        modalVideo.style.display = 'none';
-        modalImage.src = '';
-        modalVideo.src = '';
-        if(type === 'image') {
-          modalImage.src = src;
-          modalImage.style.display = '';
-          modalVideo.style.display = 'none';
-        } else if(type === 'video') {
-          modalVideo.src = src;
-          modalVideo.style.display = '';
-          modalImage.style.display = 'none';
-        }
+        modalImage.src = src;
       }
       function setTransform(x, y, scale) {
-        if(modalImage.style.display !== 'none') {
-          modalImage.style.transform = `translate(${x}px,${y}px) scale(${scale})`;
-        }
-        if(modalVideo.style.display !== 'none') {
-          modalVideo.style.transform = `translate(${x}px,${y}px) scale(${scale})`;
-        }
+        modalImage.style.transform = `translate(${x}px,${y}px) scale(${scale})`;
       }
 
-      // Drag and pan for both image and video (mouse)
+      // Drag and pan for image (mouse)
       function modalMouseDown(e) {
         isPanning = true;
         startPan.x = e.clientX; startPan.y = e.clientY;
@@ -606,37 +583,24 @@
 
       // Download button
       downloadBtn.addEventListener("click", () => {
-        let src = modalImage.style.display !== 'none' ? modalImage.src : modalVideo.src;
+        let src = modalImage.src;
         let link = document.createElement('a');
         link.href = src;
-        link.download = 'media';
+        link.download = 'image';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       });
 
-      // Fullscreen button (for video)
-      fullscreenBtn.addEventListener("click", () => {
-        if(modalVideo.style.display !== 'none') {
-          if(modalVideo.requestFullscreen) {
-            modalVideo.requestFullscreen();
-          } else if(modalVideo.webkitRequestFullscreen) {
-            modalVideo.webkitRequestFullscreen();
-          } else if(modalVideo.msRequestFullscreen) {
-            modalVideo.msRequestFullscreen();
-          }
-        }
-      });
-
       // Close modal
-      modalClose.addEventListener("click", () => {
-        inspectModal.classList.add("hidden");
-        modalImage.src = ""; modalVideo.src = "";
+      imageModalClose.addEventListener("click", () => {
+        imageModal.classList.add("hidden");
+        modalImage.src = "";
       });
-      inspectModal.addEventListener("click", (e) => {
-        if (e.target === inspectModal) {
-          inspectModal.classList.add("hidden");
-          modalImage.src = ""; modalVideo.src = "";
+      imageModal.addEventListener("click", (e) => {
+        if (e.target === imageModal) {
+          imageModal.classList.add("hidden");
+          modalImage.src = "";
         }
       });
 
@@ -646,27 +610,15 @@
       modalImage.addEventListener('mouseup', modalMouseUp);
       modalImage.addEventListener('mouseleave', modalMouseUp);
 
-      modalVideo.addEventListener('mousedown', modalMouseDown);
-      modalVideo.addEventListener('mousemove', modalMouseMove);
-      modalVideo.addEventListener('mouseup', modalMouseUp);
-      modalVideo.addEventListener('mouseleave', modalMouseUp);
-
       // Touch drag events for pan
       modalImage.addEventListener('touchstart', modalTouchStart);
       modalImage.addEventListener('touchmove', modalTouchMove);
       modalImage.addEventListener('touchend', modalTouchEnd);
 
-      modalVideo.addEventListener('touchstart', modalTouchStart);
-      modalVideo.addEventListener('touchmove', modalTouchMove);
-      modalVideo.addEventListener('touchend', modalTouchEnd);
-
-      // Open modal when clicking image/video in chat
+      // Open modal when clicking image in chat
       messages.addEventListener("click", function(e) {
         if (e.target.tagName === "IMG") {
-          openMediaModal('image', e.target.src);
-        }
-        if (e.target.tagName === "VIDEO") {
-          openMediaModal('video', e.target.src);
+          openImageModal(e.target.src);
         }
       });
     </script>
