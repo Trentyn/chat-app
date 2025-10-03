@@ -410,16 +410,24 @@
       });
 
       // Display file messages
+      // Display file messages
       socket.on("file message", (data) => {
         const item = document.createElement("li");
-        const mimeType = data.data.split(';')[0].split(':')[1] || '';
+      
+        // Safely extract MIME type
+        const mimeTypeMatch = data.data.match(/^data:([^;]+);/);
+        const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
+      
         let content = `<strong>${data.user}:</strong> `;
+      
         if (mimeType.startsWith('image/')) {
+          // Show image preview
           content += `<img src="${data.data}" alt="${data.fileName}" />`;
         } else {
-          content += `${data.fileName}`;
+          // Show file name with download link
+          content += `📄 ${data.fileName} <a href="${data.data}" download="${data.fileName}">📥 Download</a>`;
         }
-        content += ` <a href="${data.data}" download="${data.fileName}">📥</a>`;
+      
         item.innerHTML = content;
         messages.appendChild(item);
         messages.scrollTop = messages.scrollHeight;
@@ -427,3 +435,4 @@
     </script>
   </body>
 </html>
+
