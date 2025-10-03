@@ -24,10 +24,16 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Handle chat messages
+  // Handle text messages
   socket.on("chat message", (data) => {
     console.log(`${data.user}: ${data.text}`);
     io.emit("chat message", data); // Broadcast name + message
+  });
+
+  // Handle image messages
+  socket.on("image message", (data) => {
+    console.log(`${data.user} sent an image`);
+    io.emit("image message", data); // Broadcast name + image
   });
 
   // Handle disconnect
