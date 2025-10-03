@@ -52,48 +52,43 @@
         position: relative;
       }
       .chat-header {
+        position: relative;
         display: flex;
         align-items: center;
-        justify-content: center; /* Center everything horizontally */
-        padding: 0 15px;
+        justify-content: center;
         background-color: var(--header-bg);
         color: var(--header-text);
-        position: sticky;
-        top: 0;
-        z-index: 10;
         height: 56px;
-        position: relative;
+        padding: 0; /* Remove side padding */
       }
       .chat-title {
         font-weight: 600;
         letter-spacing: 0.03em;
         font-size: 1.6em;
-        flex: 1 0 auto;
+        width: 100%;
         text-align: center;
         margin: 0;
+        pointer-events: none; /* Prevent accidental click events */
       }
       .night-toggle {
         position: absolute;
-        right: 15px;
+        right: 18px;
         top: 12px;
         display: flex;
         align-items: center;
+        z-index: 2;
       }
       .night-toggle button {
+        height: 32px;
+        width: 32px;
+        font-size: 1.2em;
+        padding: 0;
+        margin: 0;
         background: none;
         border: none;
-        font-size: 1.3em;
+        border-radius: 50%;
         cursor: pointer;
         color: var(--header-text);
-        margin: 0 2px;
-        padding: 2px 8px;
-        border-radius: 50%;
-        transition: background 0.18s, color 0.18s;
-        outline: none;
-        height: 32px; width: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       }
       .night-toggle button.active {
         background: rgba(255,255,255,0.13);
@@ -742,4 +737,5 @@
     </script>
   </body>
 </html>
+
 
