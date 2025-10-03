@@ -3,12 +3,10 @@
   <head>
     <title>Chat App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Plyr CSS for modern audio/video player -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
         font: 16px Arial, sans-serif;
         display: flex;
@@ -73,6 +71,7 @@
         border-radius: 8px;
         max-width: 280px;
         max-height: 180px;
+        background: #222;
       }
       #messages a {
         text-decoration: none;
@@ -183,7 +182,7 @@
         font-size: 14px;
       }
       .hidden {
-        display: none;
+        display: none !important;
       }
       /* Image modal styles */
       #imageModal {
@@ -198,7 +197,7 @@
         transition: opacity 0.2s;
       }
       #imageModal.hidden {
-        display: none;
+        display: none !important;
         opacity: 0;
       }
       #imageModalContent {
@@ -228,8 +227,10 @@
         transition: transform 0.2s;
         background: #fff;
         box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+        z-index: 1;
       }
-      #imageModalContent button {
+      #imageModalButtons { margin-bottom:12px;display:flex;gap:10px;z-index:2;position:relative; }
+      #imageModalButtons button {
         background: rgba(40,40,40,0.8);
         color: white;
         border: none;
@@ -238,7 +239,7 @@
         cursor: pointer;
         transition: background 0.15s;
       }
-      #imageModalContent button:hover {
+      #imageModalButtons button:hover {
         background: #007bff;
         color: white;
       }
@@ -350,15 +351,16 @@
     <div id="imageModal" class="hidden">
       <div id="imageModalContent">
         <button id="imageModalClose">✖</button>
-        <img id="modalImage" src="" alt="Preview" />
-        <div style="margin-top:12px;display:flex;gap:10px;">
+        <div id="imageModalButtons">
           <button id="zoomIn">🔍+</button>
           <button id="zoomOut">🔍−</button>
-          <button id="openInNew">🌐 Open in new tab</button>
+          <button id="downloadImage">⬇️ Download image</button>
         </div>
+        <img id="modalImage" src="" alt="Preview" />
       </div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
     <script>
       const socket = io();
       const form = document.getElementById("form");
@@ -380,7 +382,7 @@
       const modalImage = document.getElementById("modalImage");
       const zoomIn = document.getElementById("zoomIn");
       const zoomOut = document.getElementById("zoomOut");
-      const openInNew = document.getElementById("openInNew");
+      const downloadImage = document.getElementById("downloadImage");
       let currentZoom = 1;
 
       let username = "";
@@ -523,15 +525,23 @@
         if (mimeType.startsWith('image/')) {
           content += `<img src="${msg.data}" alt="${msg.fileName}" style="cursor:pointer;" />`;
         } else if (mimeType.startsWith('audio/')) {
-          content += `🎵 ${msg.fileName} <audio controls src="${msg.data}" style="vertical-align:middle;max-width:280px;"></audio>`;
+          content += `🎵 ${msg.fileName} <audio class="plyr" controls src="${msg.data}"></audio>`;
         } else if (mimeType.startsWith('video/')) {
-          content += `🎬 ${msg.fileName} <video controls src="${msg.data}" style="max-width:280px;max-height:180px;border-radius:8px;"></video>`;
+          content += `🎬 ${msg.fileName} <video class="plyr" controls src="${msg.data}" style="max-width:280px;max-height:180px;border-radius:8px;"></video>`;
         } else {
           content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥 Download</a>`;
         }
         item.innerHTML = content;
         messages.appendChild(item);
         messages.scrollTop = messages.scrollHeight;
+
+        // Initialize Plyr for new audio/video elements
+        setTimeout(() => {
+          const audios = item.querySelectorAll('audio.plyr');
+          const videos = item.querySelectorAll('video.plyr');
+          audios.forEach(a => new Plyr(a, {controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'download']}));
+          videos.forEach(v => new Plyr(v, {controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'download']}));
+        }, 10);
       }
 
       // Display chat history (received on join)
@@ -583,8 +593,13 @@
         currentZoom = Math.max(currentZoom - 0.25, 0.5);
         modalImage.style.transform = `scale(${currentZoom})`;
       });
-      openInNew.addEventListener("click", () => {
-        window.open(modalImage.src, "_blank");
+      downloadImage.addEventListener("click", () => {
+        const link = document.createElement('a');
+        link.href = modalImage.src;
+        link.download = 'image';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       });
     </script>
   </body>
