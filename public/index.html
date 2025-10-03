@@ -20,8 +20,8 @@
       }
       .chat-container {
         width: 100%;
-        max-width: 600px; /* Limits max width for larger screens */
-        height: 100vh; /* Full viewport height */
+        max-width: 600px;
+        height: 100vh;
         display: flex;
         flex-direction: column;
         background-color: #fff;
@@ -39,12 +39,12 @@
       #messages {
         list-style: none;
         padding: 20px;
-        flex-grow: 1; /* Takes remaining space */
-        overflow-y: auto; /* Scrollable messages */
+        flex-grow: 1;
+        overflow-y: auto;
       }
       #messages li {
         margin: 10px 0;
-        word-wrap: break-word; /* Ensures long words wrap */
+        word-wrap: break-word;
       }
       #form {
         display: flex;
@@ -70,12 +70,52 @@
       button:hover {
         background-color: #0056b3;
       }
+      /* Modal styles */
+      .modal {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        text-align: center;
+        max-width: 300px;
+        width: 90%;
+      }
+      .modal-content h3 {
+        margin-bottom: 15px;
+      }
+      .modal-content input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+      }
+      .modal-content button {
+        width: 100%;
+        padding: 10px;
+      }
+      .hidden {
+        display: none;
+      }
       /* Responsive design for smaller screens */
       @media (max-width: 600px) {
         .chat-container {
           max-width: 100%;
-          border-radius: 0; /* Remove border radius on mobile */
-          height: 100vh; /* Ensure full height on mobile */
+          border-radius: 0;
+          height: 100vh;
         }
         h2 {
           font-size: 1.5em;
@@ -83,11 +123,21 @@
         #input, button {
           font-size: 14px;
         }
+        .modal-content {
+          width: 95%;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="chat-container">
+    <div class="modal" id="usernameModal">
+      <div class="modal-content">
+        <h3>Enter Your Name</h3>
+        <input type="text" id="usernameInput" placeholder="Your name" autocomplete="off" />
+        <button id="submitUsername">Join Chat</button>
+      </div>
+    </div>
+    <div class="chat-container hidden" id="chatContainer">
       <h2>Socket.IO Chat</h2>
       <ul id="messages"></ul>
       <form id="form">
@@ -100,11 +150,36 @@
       const form = document.getElementById("form");
       const input = document.getElementById("input");
       const messages = document.getElementById("messages");
-      // Ask for username
+      const usernameModal = document.getElementById("usernameModal");
+      const usernameInput = document.getElementById("usernameInput");
+      const submitUsername = document.getElementById("submitUsername");
+      const chatContainer = document.getElementById("chatContainer");
+
       let username = "";
-      while (!username) {
-        username = prompt("Enter your name:");
-      }
+
+      // Handle username submission
+      submitUsername.addEventListener("click", () => {
+        const inputValue = usernameInput.value.trim();
+        if (inputValue) {
+          username = inputValue;
+          usernameModal.classList.add("hidden");
+          chatContainer.classList.remove("hidden");
+        } else {
+          alert("Please enter a name!");
+        }
+      });
+
+      // Allow pressing Enter to submit username
+      usernameInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          submitUsername.click();
+        }
+      });
+
+      // Focus on username input when modal appears
+      usernameInput.focus();
+
+      // Handle chat message submission
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         if (input.value) {
@@ -112,11 +187,13 @@
           input.value = "";
         }
       });
+
+      // Display received messages
       socket.on("chat message", (data) => {
         const item = document.createElement("li");
         item.innerHTML = `<strong>${data.user}:</strong> ${data.text}`;
         messages.appendChild(item);
-        messages.scrollTop = messages.scrollHeight; /* Scroll to bottom */
+        messages.scrollTop = messages.scrollHeight;
       });
     </script>
   </body>
