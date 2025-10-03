@@ -7,21 +7,19 @@ const io = new Server(server, {
   maxHttpBufferSize: 200 * 1024 * 1024 // 200MB to account for base64 overhead
 });
 
-app.use(express.json({ limit: '51mb' }));
-app.use(express.urlencoded({ limit: '51mb', extended: true }));
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ limit: '200mb', extended: true }));
 app.use(express.static("public"));
 
 const usernames = new Set();
-let messages = []; // Store all chat messages
+let messages = []; // Only text messages will be saved in history
 
 function cleanOldMessages() {
   const now = Date.now();
-  // Filter only messages from last 24 hours
+  // Only keep text messages from last 24 hours
   messages = messages.filter(msg => now - msg.timestamp < 24 * 60 * 60 * 1000);
 }
-
-// Clean every hour
-setInterval(cleanOldMessages, 60 * 60 * 1000);
+setInterval(cleanOldMessages, 60 * 60 * 1000); // Clean every hour
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
@@ -32,11 +30,9 @@ io.on("connection", (socket) => {
     } else {
       usernames.add(username);
       socket.username = username;
-      // Clean before sending
       cleanOldMessages();
-      // Send chat history to new user
+      // Only send text messages in chat history
       socket.emit("chat history", messages);
-
       socket.emit("joined");
     }
   });
@@ -48,29 +44,14 @@ io.on("connection", (socket) => {
       text: data.text,
       timestamp: Date.now()
     };
-    messages.push(msg);
+    messages.push(msg); // Only text messages are saved in history
     io.emit("chat message", msg);
   });
 
   socket.on("file message", (data) => {
-    // 1. Broadcast the actual file to all connected users
+    // Broadcast file/image to all connected users, but DO NOT save in history
     io.emit("file message", data);
-  
-    // 2. Save only a placeholder in history (no .data)
-    const mimeTypeMatch = data.data.match(/^data:([^;]+);/);
-    const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
-    let fileType = 'file';
-    if (mimeType.startsWith('image/')) fileType = 'image';
-  
-    const msg = {
-      type: "file",
-      user: data.user,
-      fileName: data.fileName,
-      fileType: fileType,
-      timestamp: Date.now()
-      // NO .data field here!
-    };
-    messages.push(msg);
+    // Do NOT push anything to messages array for files/images
   });
 
   socket.on("disconnect", () => {
@@ -85,6 +66,3 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-
-
