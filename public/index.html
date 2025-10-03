@@ -303,7 +303,6 @@
       let isUploading = false;
       let uploadMessageLi = null;
 
-      // Handle username submission
       submitUsername.addEventListener("click", () => {
         const inputValue = usernameInput.value.trim();
         if (inputValue) {
@@ -313,35 +312,29 @@
         }
       });
 
-      // Allow pressing Enter to submit username
       usernameInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
           submitUsername.click();
         }
       });
 
-      // Server response: Username taken
       socket.on("username taken", () => {
         showError("Username is already taken!");
       });
 
-      // Server response: Joined successfully
       socket.on("joined", () => {
         username = usernameInput.value.trim();
         usernameModal.classList.add("hidden");
         chatContainer.classList.remove("hidden");
       });
 
-      // Function to show error in modal
       function showError(message) {
         usernameError.textContent = message;
         usernameError.style.display = "block";
       }
 
-      // Focus on username input when modal appears
       usernameInput.focus();
 
-      // Show attached file name when file is selected
       fileInput.addEventListener("change", () => {
         if (fileInput.files.length > 0) {
           attachedFile.textContent = `Attached: ${fileInput.files[0].name}`;
@@ -350,22 +343,19 @@
         }
       });
 
-      // Handle form submission (text or file)
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const textToSend = input.value.trim();
         const hasFile = fileInput.files.length > 0;
 
-        // Allow text messages even during upload
         if (textToSend) {
           socket.emit("chat message", { user: username, text: textToSend });
           input.value = "";
         }
 
-        // If a file is selected and not currently uploading, upload it
         if (hasFile && !isUploading) {
           const file = fileInput.files[0];
-          if (file.size > 100 * 1024 * 1024) { // 100MB limit
+          if (file.size > 100 * 1024 * 1024) {
             alert("File size exceeds 100MB!");
             return;
           }
@@ -374,7 +364,6 @@
           progressContainer.style.display = "block";
           uploadProgress.value = 0;
 
-          // Add a placeholder message to chat
           uploadMessageLi = document.createElement("li");
           uploadMessageLi.innerHTML =
             `<strong>${username}:</strong> Uploading <em>${file.name}</em>... <span id="uploadStatus">0%</span>`;
@@ -383,7 +372,6 @@
 
           const reader = new FileReader();
 
-          // Update progress bar and status in chat
           reader.onprogress = (event) => {
             if (event.lengthComputable) {
               const percent = Math.round((event.loaded / event.total) * 100);
@@ -401,7 +389,6 @@
               data: reader.result,
             });
 
-            // Reset form UI after upload
             fileInput.value = "";
             attachedFile.textContent = "";
             progressContainer.style.display = "none";
@@ -409,7 +396,6 @@
             isUploading = false;
             fileInput.disabled = false;
 
-            // Remove upload status message (it will be replaced by the server's file message)
             if (uploadMessageLi && uploadMessageLi.parentNode) {
               uploadMessageLi.parentNode.removeChild(uploadMessageLi);
               uploadMessageLi = null;
@@ -428,38 +414,45 @@
             }
           };
 
-          reader.readAsDataURL(file); // This works for all file types
+          reader.readAsDataURL(file);
         }
       });
 
-      // Display text messages
-      socket.on("chat message", (data) => {
+      // Render a single message (text or file)
+      function renderMessage(msg) {
         const item = document.createElement("li");
-        item.innerHTML = `<strong>${data.user}:</strong> ${data.text}`;
+        if (msg.type === "text") {
+          item.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
+        } else if (msg.type === "file") {
+          const mimeTypeMatch = msg.data.match(/^data:([^;]+);/);
+          const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
+          let content = `<strong>${msg.user}:</strong> `;
+          if (mimeType.startsWith('image/')) {
+            content += `<img src="${msg.data}" alt="${msg.fileName}" />`;
+          } else {
+            content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥 Download</a>`;
+          }
+          item.innerHTML = content;
+        }
         messages.appendChild(item);
+      }
+
+      // Display chat history (received on join)
+      socket.on("chat history", (history) => {
+        messages.innerHTML = ""; // Clear messages
+        history.forEach(renderMessage);
+        // Don't auto-scroll, let user scroll themselves
+      });
+
+      // Display new text message
+      socket.on("chat message", (msg) => {
+        renderMessage(msg);
         messages.scrollTop = messages.scrollHeight;
       });
 
-      // Display file messages
-      socket.on("file message", (data) => {
-        const item = document.createElement("li");
-
-        // Safely extract MIME type
-        const mimeTypeMatch = data.data.match(/^data:([^;]+);/);
-        const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
-
-        let content = `<strong>${data.user}:</strong> `;
-
-        if (mimeType.startsWith('image/')) {
-          // Show image preview
-          content += `<img src="${data.data}" alt="${data.fileName}" />`;
-        } else {
-          // Show file name with download link
-          content += `📄 ${data.fileName} <a href="${data.data}" download="${data.fileName}">📥 Download</a>`;
-        }
-
-        item.innerHTML = content;
-        messages.appendChild(item);
+      // Display new file message
+      socket.on("file message", (msg) => {
+        renderMessage(msg);
         messages.scrollTop = messages.scrollHeight;
       });
     </script>
