@@ -361,8 +361,8 @@
 
         if (hasFile && !isUploading) {
           const file = fileInput.files[0];
-          if (file.size > 100 * 1024 * 1024) {
-            alert("File size exceeds 100MB!");
+          if (file.size > 50 * 1024 * 1024) { // 50MB limit
+            alert("File size exceeds 50MB!");
             return;
           }
           isUploading = true;
@@ -464,5 +464,6 @@
     </script>
   </body>
 </html>
+
 
 
