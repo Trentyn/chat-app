@@ -3,7 +3,9 @@ const http = require("http");
 const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  maxHttpBufferSize: 200 * 1024 * 1024 // 200MB to account for base64 overhead
+});
 
 // Serve static files (our frontend)
 app.use(express.static("public"));
