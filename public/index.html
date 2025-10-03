@@ -134,7 +134,6 @@
       progress {
         width: 100px;
       }
-      /* Modal styles */
       .modal {
         display: flex;
         position: fixed;
@@ -183,7 +182,6 @@
       .hidden {
         display: none;
       }
-      /* Responsive design for smaller screens */
       @media (max-width: 600px) {
         body {
           font-size: 18px;
@@ -259,7 +257,6 @@
           font-size: 14px;
         }
       }
-      /* Ensure viewport scaling */
       @media (max-width: 600px) {
         html {
           font-size: 18px;
@@ -308,7 +305,9 @@
       let username = "";
       let isUploading = false;
       let uploadMessageLi = null;
+      let sendingTimeout = null;
 
+      // Handle username submission
       submitUsername.addEventListener("click", () => {
         const inputValue = usernameInput.value.trim();
         if (inputValue) {
@@ -318,29 +317,35 @@
         }
       });
 
+      // Allow pressing Enter to submit username
       usernameInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
           submitUsername.click();
         }
       });
 
+      // Server response: Username taken
       socket.on("username taken", () => {
         showError("Username is already taken!");
       });
 
+      // Server response: Joined successfully
       socket.on("joined", () => {
         username = usernameInput.value.trim();
         usernameModal.classList.add("hidden");
         chatContainer.classList.remove("hidden");
       });
 
+      // Function to show error in modal
       function showError(message) {
         usernameError.textContent = message;
         usernameError.style.display = "block";
       }
 
+      // Focus on username input when modal appears
       usernameInput.focus();
 
+      // Show attached file name when file is selected
       fileInput.addEventListener("change", () => {
         if (fileInput.files.length > 0) {
           attachedFile.textContent = `Attached: ${fileInput.files[0].name}`;
@@ -349,20 +354,23 @@
         }
       });
 
+      // Handle form submission (text or file)
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const textToSend = input.value.trim();
         const hasFile = fileInput.files.length > 0;
 
+        // Allow text messages even during upload
         if (textToSend) {
           socket.emit("chat message", { user: username, text: textToSend });
           input.value = "";
         }
 
+        // If a file is selected and not currently uploading, upload it
         if (hasFile && !isUploading) {
           const file = fileInput.files[0];
-          if (file.size > 50 * 1024 * 1024) { // 50MB limit
-            alert("File size exceeds 50MB!");
+          if (file.size > 100 * 1024 * 1024) { // 100MB limit
+            alert("File size exceeds 100MB!");
             return;
           }
           isUploading = true;
@@ -370,6 +378,7 @@
           progressContainer.style.display = "block";
           uploadProgress.value = 0;
 
+          // Add a placeholder message to chat (uploading)
           uploadMessageLi = document.createElement("li");
           uploadMessageLi.innerHTML =
             `<strong>${username}:</strong> Uploading <em>${file.name}</em>... <span id="uploadStatus">0%</span>`;
@@ -378,6 +387,7 @@
 
           const reader = new FileReader();
 
+          // Update progress bar and status in chat
           reader.onprogress = (event) => {
             if (event.lengthComputable) {
               const percent = Math.round((event.loaded / event.total) * 100);
@@ -389,12 +399,19 @@
           };
 
           reader.onload = () => {
+            // Change status to "Sending..."
+            if (uploadMessageLi) {
+              uploadMessageLi.innerHTML =
+                `<strong>${username}:</strong> Sending <em>${file.name}</em>... <span id="sendingStatus">⏳</span>`;
+            }
+            // Actually send file to server
             socket.emit("file message", {
               user: username,
               fileName: file.name,
               data: reader.result,
             });
 
+            // Reset local UI
             fileInput.value = "";
             attachedFile.textContent = "";
             progressContainer.style.display = "none";
@@ -402,10 +419,13 @@
             isUploading = false;
             fileInput.disabled = false;
 
-            if (uploadMessageLi && uploadMessageLi.parentNode) {
-              uploadMessageLi.parentNode.removeChild(uploadMessageLi);
-              uploadMessageLi = null;
-            }
+            // Start timeout for server acknowledgement (e.g. 30s)
+            sendingTimeout = setTimeout(() => {
+              if (uploadMessageLi && uploadMessageLi.parentNode) {
+                uploadMessageLi.querySelector("#sendingStatus").textContent = "❌ Timed out!";
+                uploadMessageLi.style.color = "red";
+              }
+            }, 30000);
           };
 
           reader.onerror = () => {
@@ -418,6 +438,7 @@
               uploadMessageLi.parentNode.removeChild(uploadMessageLi);
               uploadMessageLi = null;
             }
+            if (sendingTimeout) clearTimeout(sendingTimeout);
           };
 
           reader.readAsDataURL(file);
@@ -458,12 +479,15 @@
 
       // Display new file message
       socket.on("file message", (msg) => {
+        // Remove "Sending..." status if present
+        if (uploadMessageLi && uploadMessageLi.parentNode) {
+          uploadMessageLi.parentNode.removeChild(uploadMessageLi);
+          uploadMessageLi = null;
+          if (sendingTimeout) clearTimeout(sendingTimeout);
+        }
         renderMessage(msg);
         messages.scrollTop = messages.scrollHeight;
       });
     </script>
   </body>
 </html>
-
-
-
