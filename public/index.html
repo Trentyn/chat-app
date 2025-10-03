@@ -292,8 +292,6 @@
       const input = document.getElementById("input");
       const fileInput = document.getElementById("fileInput");
       const attachedFile = document.getElementById("attachedFile");
-      const progressContainer = document.getElementById("progressContainer");
-      const uploadProgress = document.getElementById("uploadProgress");
       const sendButton = document.getElementById("sendButton");
       const messages = document.getElementById("messages");
       const usernameModal = document.getElementById("usernameModal");
@@ -301,12 +299,13 @@
       const submitUsername = document.getElementById("submitUsername");
       const chatContainer = document.getElementById("chatContainer");
       const usernameError = document.getElementById("usernameError");
-
+      
       let username = "";
       let isUploading = false;
       let uploadMessageLi = null;
       let sendingTimeout = null;
-
+      let sendingAnimationInterval = null;
+      
       // Handle username submission
       submitUsername.addEventListener("click", () => {
         const inputValue = usernameInput.value.trim();
@@ -316,36 +315,30 @@
           showError("Please enter a name!");
         }
       });
-
-      // Allow pressing Enter to submit username
+      
       usernameInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
           submitUsername.click();
         }
       });
-
-      // Server response: Username taken
+      
       socket.on("username taken", () => {
         showError("Username is already taken!");
       });
-
-      // Server response: Joined successfully
+      
       socket.on("joined", () => {
         username = usernameInput.value.trim();
         usernameModal.classList.add("hidden");
         chatContainer.classList.remove("hidden");
       });
-
-      // Function to show error in modal
+      
       function showError(message) {
         usernameError.textContent = message;
         usernameError.style.display = "block";
       }
-
-      // Focus on username input when modal appears
+      
       usernameInput.focus();
-
-      // Show attached file name when file is selected
+      
       fileInput.addEventListener("change", () => {
         if (fileInput.files.length > 0) {
           attachedFile.textContent = `Attached: ${fileInput.files[0].name}`;
@@ -353,20 +346,17 @@
           attachedFile.textContent = "";
         }
       });
-
-      // Handle form submission (text or file)
+      
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const textToSend = input.value.trim();
         const hasFile = fileInput.files.length > 0;
-
-        // Allow text messages even during upload
+      
         if (textToSend) {
           socket.emit("chat message", { user: username, text: textToSend });
           input.value = "";
         }
-
-        // If a file is selected and not currently uploading, upload it
+      
         if (hasFile && !isUploading) {
           const file = fileInput.files[0];
           if (file.size > 100 * 1024 * 1024) { // 100MB limit
@@ -375,63 +365,48 @@
           }
           isUploading = true;
           fileInput.disabled = true;
-          progressContainer.style.display = "block";
-          uploadProgress.value = 0;
-
-          // Add a placeholder message to chat (uploading)
+      
+          // Add "Sending..." message
           uploadMessageLi = document.createElement("li");
           uploadMessageLi.innerHTML =
-            `<strong>${username}:</strong> Uploading <em>${file.name}</em>... <span id="uploadStatus">0%</span>`;
+            `<strong>${username}:</strong> Sending <em>${file.name}</em>... <span id="sendingStatus">⏳</span>`;
           messages.appendChild(uploadMessageLi);
           messages.scrollTop = messages.scrollHeight;
-
+      
+          // Dynamic "⏳" animation
+          let dots = 1;
+          sendingAnimationInterval = setInterval(() => {
+            if (!uploadMessageLi) return;
+            let dotStr = "⏳".repeat(dots);
+            uploadMessageLi.querySelector("#sendingStatus").textContent = dotStr;
+            dots = (dots % 3) + 1;
+          }, 500);
+      
+          // Read and send file
           const reader = new FileReader();
-
-          // Update progress bar and status in chat
-          reader.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const percent = Math.round((event.loaded / event.total) * 100);
-              uploadProgress.value = percent;
-              if (uploadMessageLi) {
-                uploadMessageLi.querySelector("#uploadStatus").textContent = percent + "%";
-              }
-            }
-          };
-
           reader.onload = () => {
-            // Change status to "Sending..."
-            if (uploadMessageLi) {
-              uploadMessageLi.innerHTML =
-                `<strong>${username}:</strong> Sending <em>${file.name}</em>... <span id="sendingStatus">⏳</span>`;
-            }
-            // Actually send file to server
             socket.emit("file message", {
               user: username,
               fileName: file.name,
               data: reader.result,
             });
-
-            // Reset local UI
+      
             fileInput.value = "";
             attachedFile.textContent = "";
-            progressContainer.style.display = "none";
-            uploadProgress.value = 0;
             isUploading = false;
             fileInput.disabled = false;
-
-            // Start timeout for server acknowledgement (e.g. 30s)
+      
+            // Timeout for server acknowledgement (e.g. 30s)
             sendingTimeout = setTimeout(() => {
               if (uploadMessageLi && uploadMessageLi.parentNode) {
                 uploadMessageLi.querySelector("#sendingStatus").textContent = "❌ Timed out!";
                 uploadMessageLi.style.color = "red";
               }
+              if (sendingAnimationInterval) clearInterval(sendingAnimationInterval);
             }, 30000);
           };
-
           reader.onerror = () => {
             alert("Error reading file!");
-            progressContainer.style.display = "none";
-            uploadProgress.value = 0;
             isUploading = false;
             fileInput.disabled = false;
             if (uploadMessageLi && uploadMessageLi.parentNode) {
@@ -439,12 +414,13 @@
               uploadMessageLi = null;
             }
             if (sendingTimeout) clearTimeout(sendingTimeout);
+            if (sendingAnimationInterval) clearInterval(sendingAnimationInterval);
           };
-
+      
           reader.readAsDataURL(file);
         }
       });
-
+      
       // Render a single message (text only for history)
       function renderMessage(msg) {
         const item = document.createElement("li");
@@ -452,29 +428,25 @@
           item.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
           messages.appendChild(item);
         }
-        // File/image messages will never appear in history!
       }
-
-      // Display chat history (received on join)
+      
       socket.on("chat history", (history) => {
         messages.innerHTML = ""; // Clear messages
         history.forEach(renderMessage);
-        // Don't auto-scroll, let user scroll themselves
       });
-
-      // Display new text message
+      
       socket.on("chat message", (msg) => {
         renderMessage(msg);
         messages.scrollTop = messages.scrollHeight;
       });
-
-      // Display new file message (live only)
+      
       socket.on("file message", (msg) => {
         // Remove "Sending..." status if present
         if (uploadMessageLi && uploadMessageLi.parentNode) {
           uploadMessageLi.parentNode.removeChild(uploadMessageLi);
           uploadMessageLi = null;
           if (sendingTimeout) clearTimeout(sendingTimeout);
+          if (sendingAnimationInterval) clearInterval(sendingAnimationInterval);
         }
         // Render live file/image
         const item = document.createElement("li");
@@ -493,3 +465,4 @@
     </script>
   </body>
 </html>
+
