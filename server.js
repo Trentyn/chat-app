@@ -46,6 +46,7 @@ io.on("connection", (socket) => {
       const qrCode = await QRCode.toDataURL(secret.otpauth_url);
       socket.emit("register_success", { qrCode, recoveryKey });
     } catch (err) {
+      console.error("Registration error:", err);
       socket.emit("register_error", "Registration failed, try again.");
     }
   });
@@ -121,3 +122,4 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
