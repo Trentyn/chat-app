@@ -611,6 +611,58 @@
         messages.scrollTop = messages.scrollHeight;
       }
 
+      // Add this to your existing socket.io event handlers in the script section:
+
+      socket.on("setup_2fa", (data) => {
+        // Show QR code and recovery key to user
+        const modalContent = document.querySelector(".modal-content");
+        modalContent.innerHTML = `
+          <h3>Set up 2FA</h3>
+          <p>Scan this QR code with Google Authenticator:</p>
+          <img src="${data.qrCode}" alt="QR Code" style="max-width: 200px; margin: 10px 0;">
+          <p>Your recovery key (save this somewhere safe!):</p>
+          <code style="display: block; word-break: break-all; margin: 10px 0; padding: 10px; background: #f5f5f5;">${data.recoveryKey}</code>
+          <p>Enter the code from Google Authenticator:</p>
+          <input type="text" id="totpCode" placeholder="Enter 6-digit code" />
+          <button id="verify2FA">Verify</button>
+          <div class="error" id="authError" style="display: none;"></div>
+        `;
+      });
+      
+      // Modify the username submit handler:
+      submitUsername.addEventListener("click", () => {
+        const inputValue = usernameInput.value.trim();
+        const totpCode = document.getElementById("totpCode")?.value;
+        
+        if (inputValue) {
+          socket.emit("join", { 
+            username: inputValue,
+            token: totpCode 
+          });
+        } else {
+          showError("Please enter a name!");
+        }
+      });
+      
+      // Add recovery functionality
+      const recoveryForm = `
+        <h3>Account Recovery</h3>
+        <input type="text" id="recoveryUsername" placeholder="Username" />
+        <input type="text" id="recoveryKey" placeholder="Recovery Key" />
+        <button id="recoverAccount">Recover Account</button>
+        <div class="error" id="recoveryError" style="display: none;"></div>
+      `;
+      
+      // Add a "Lost Access?" link to the username modal
+      usernameModal.querySelector(".modal-content").innerHTML += `
+        <p><a href="#" id="showRecovery">Lost access?</a></p>
+      `;
+      
+      document.getElementById("showRecovery").addEventListener("click", (e) => {
+        e.preventDefault();
+        usernameModal.querySelector(".modal-content").innerHTML = recoveryForm;
+      });
+      
       // Display chat history (received on join)
       socket.on("chat history", (history) => {
         messages.innerHTML = ""; // Clear messages
@@ -737,5 +789,6 @@
     </script>
   </body>
 </html>
+
 
 
