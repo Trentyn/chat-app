@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const { User, Message } = require("./models/User");
 const speakeasy = require("speakeasy");
 const QRCode = require("qrcode");
-const cryptoRandomString = require("crypto-random-string");
+const cryptoRandomString = require("crypto-random-string").default;
 
 const app = express();
 const server = http.createServer(app);
@@ -122,4 +122,5 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
