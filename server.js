@@ -28,7 +28,7 @@ function cleanOldMessages() {
 setInterval(cleanOldMessages, 60 * 60 * 1000);
 
 io.on("connection", (socket) => {
-  // Registration: receive username, respond with QR code and recovery key
+  // Registration Step 1: receive username, respond with QR code & recovery key
   socket.on("register", async (username) => {
     try {
       if (!username || username.length < 2) {
@@ -42,16 +42,47 @@ io.on("connection", (socket) => {
       }
       const secret = speakeasy.generateSecret({ name: `ChatApp:${username}` });
       const recoveryKey = cryptoRandomString({ length: 40, type: "base64" });
-      await User.create({ username, secret: secret.base32, recoveryKey });
+      socket._pendingRegistration = { username, secret, recoveryKey };
       const qrCode = await QRCode.toDataURL(secret.otpauth_url);
-      socket.emit("register_success", { qrCode, recoveryKey });
+      socket.emit("register_step2", { qrCode, recoveryKey });
     } catch (err) {
       console.error("Registration error:", err);
       socket.emit("register_error", "Registration failed, try again.");
     }
   });
 
-  // Login: username + TOTP, respond with chat history if OK
+  // Registration Step 2: verify TOTP, create user in DB, send success
+  socket.on("register_confirm", async ({ token, theme }) => {
+    try {
+      const reg = socket._pendingRegistration;
+      if (!reg) {
+        socket.emit("register_error", "No registration pending.");
+        return;
+      }
+      const verified = speakeasy.totp.verify({
+        secret: reg.secret.base32,
+        encoding: "base32",
+        token
+      });
+      if (!verified) {
+        socket.emit("register_error", "Invalid code! Scan QR and enter correct code.");
+        return;
+      }
+      await User.create({
+        username: reg.username,
+        secret: reg.secret.base32,
+        recoveryKey: reg.recoveryKey,
+        theme: theme === "dark" ? "dark" : "light"
+      });
+      delete socket._pendingRegistration;
+      socket.emit("register_success");
+    } catch (err) {
+      console.error("Registration confirm error:", err);
+      socket.emit("register_error", "Registration failed, try again.");
+    }
+  });
+
+  // Login: username + TOTP, respond with chat history and theme if OK
   socket.on("login", async ({ username, token }) => {
     try {
       const user = await User.findOne({ username });
@@ -72,14 +103,14 @@ io.on("connection", (socket) => {
       const history = await Message.find()
         .sort({ timestamp: 1 })
         .limit(100);
-      socket.emit("login_success");
+      socket.emit("login_success", { theme: user.theme || "light" });
       socket.emit("chat_history", history);
     } catch (err) {
       socket.emit("login_error", "Login failed.");
     }
   });
 
-  // Recovery: username + recoveryKey, returns new QR and key
+  // Recovery: username + recoveryKey, returns new QR and key, does NOT log user in
   socket.on("recover", async ({ username, recoveryKey }) => {
     try {
       const user = await User.findOne({ username, recoveryKey });
@@ -116,11 +147,17 @@ io.on("connection", (socket) => {
     if (!socket.username) return;
     io.emit("file_message", { ...data, user: socket.username });
   });
+
+  // Theme change (light/dark) for logged in user
+  socket.on("set_theme", async (theme) => {
+    if (!socket.username) return;
+    if (theme !== "light" && theme !== "dark") return;
+    await User.updateOne({ username: socket.username }, { theme });
+    socket.emit("theme_changed", theme);
+  });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-
