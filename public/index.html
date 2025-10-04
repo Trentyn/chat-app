@@ -38,6 +38,26 @@
         overflow-x: hidden;
         padding-top: 40px;
       }
+      .auth-container {
+        max-width: 400px;
+        margin: 60px auto;
+        padding: 24px;
+        background: var(--chat-bg);
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.12);
+        position: relative;
+        z-index: 10;
+      }
+      .auth-title { font-size: 1.6em; text-align: center; margin-bottom: 12px;}
+      .auth-form { display: flex; flex-direction: column; gap: 14px;}
+      .auth-input { padding: 12px; border: 1px solid var(--input-border); border-radius: 5px; font-size: 1em;}
+      .auth-button { padding: 12px; background: var(--primary); color: var(--header-text); border: none; border-radius: 5px; font-size: 1em; cursor: pointer;}
+      .auth-switch { text-align: center; margin-top: 14px;}
+      .auth-switch a { color: var(--primary); text-decoration: underline; cursor:pointer;}
+      .qr-container { text-align: center; margin: 20px 0;}
+      .qr-container img { max-width: 180px; margin: 10px 0;}
+      .recovery-key { background: #f8f8f8; padding: 14px; margin: 16px 0; word-break: break-all; border-radius: 5px; font-family: monospace;}
+      .error-message { color: #e74c3c; text-align: center; margin: 10px 0;}
       .chat-container {
         width: 100%;
         max-width: 650px;
@@ -59,7 +79,7 @@
         background-color: var(--header-bg);
         color: var(--header-text);
         height: 56px;
-        padding: 0; /* Remove side padding */
+        padding: 0;
       }
       .chat-title {
         font-weight: 600;
@@ -68,7 +88,7 @@
         width: 100%;
         text-align: center;
         margin: 0;
-        pointer-events: none; /* Prevent accidental click events */
+        pointer-events: none;
       }
       .night-toggle {
         position: absolute;
@@ -157,9 +177,7 @@
         background: var(--chat-bg);
         color: var(--text);
       }
-      #fileInput {
-        display: none;
-      }
+      #fileInput { display: none; }
       .file-button {
         display: flex;
         align-items: center;
@@ -252,98 +270,7 @@
         margin-top: 8px;
         font-size: 14px;
       }
-      .hidden {
-        display: none !important;
-      }
-      /* Image modal styles */
-      #imageModal {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: var(--modal-bg);
-        z-index: 2000;
-        transition: opacity 0.2s;
-      }
-      #imageModal.hidden { display: none !important; opacity: 0; }
-      #imageModalContent {
-        position: relative;
-        max-width: 96vw;
-        max-height: 96vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        background: none;
-        z-index: 2;
-      }
-      #imageModalClose {
-        position: absolute;
-        top: 10px; right: 10px;
-        font-size: 2em;
-        background: none;
-        border: none;
-        color: #fff;
-        cursor: pointer;
-        z-index: 10;
-      }
-      #imageModalWrapper {
-        position: relative;
-        overflow: hidden;
-        width: 90vw;
-        height: 80vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: transparent;
-      }
-      #modalImage {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        border-radius: 8px;
-        transition: transform 0.2s;
-        background: #fff;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.18);
-        cursor: grab;
-        position: relative;
-        left: 0; top: 0;
-        margin: auto;
-      }
-      #imageModalButtons {
-        margin-bottom: 12px;
-        display: flex;
-        gap: 10px;
-        z-index: 5;
-        position: relative;
-      }
-      #imageModalButtons button {
-        background: rgba(40,40,40,0.8);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 8px 14px;
-        cursor: pointer;
-        transition: background 0.15s;
-        font-size: 1em;
-        height: 32px; width: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      #imageModalButtons button:hover {
-        background: #007bff;
-        color: white;
-      }
-      body.night #imageModalButtons button {
-        background: #232a36;
-        color: #ffe66d;
-      }
-      body.night #imageModalButtons button:hover {
-        background: #007bff;
-        color: #fff;
-      }
+      .hidden { display: none !important; }
       @media (max-width: 600px) {
         body { font-size: 18px; }
         .chat-container { max-width: 100%; max-height: 95vh; border-radius: 0; margin-top: 0; }
@@ -371,14 +298,60 @@
     </style>
   </head>
   <body>
-    <div class="modal" id="usernameModal">
-      <div class="modal-content">
-        <h3>Enter Your Name</h3>
-        <input type="text" id="usernameInput" placeholder="Your name" autocomplete="off" />
-        <button id="submitUsername">Join Chat</button>
-        <div class="error" id="usernameError" style="display: none;"></div>
+    <!-- Authentication UI -->
+    <div class="auth-container" id="authContainer">
+      <!-- Login -->
+      <div id="loginForm">
+        <div class="auth-title">Login</div>
+        <form class="auth-form" onsubmit="handleLogin(event)">
+          <input type="text" class="auth-input" id="loginUsername" placeholder="Username" required>
+          <input type="text" class="auth-input" id="loginToken" placeholder="Authenticator Code" required>
+          <button type="submit" class="auth-button">Login</button>
+          <div class="error-message" id="loginError"></div>
+        </form>
+        <div class="auth-switch">
+          <a onclick="showRecovery()">Lost access?</a> | <a onclick="showRegister()">Create account</a>
+        </div>
+      </div>
+      <!-- Register -->
+      <div id="registerForm" style="display:none;">
+        <div class="auth-title">Register</div>
+        <form class="auth-form" onsubmit="handleRegister(event)">
+          <input type="text" class="auth-input" id="registerUsername" placeholder="Choose Username" required>
+          <button type="submit" class="auth-button">Register</button>
+          <div class="error-message" id="registerError"></div>
+        </form>
+        <div class="auth-switch">
+          <a onclick="showLogin()">Back to Login</a>
+        </div>
+      </div>
+      <!-- Recovery -->
+      <div id="recoveryForm" style="display:none;">
+        <div class="auth-title">Account Recovery</div>
+        <form class="auth-form" onsubmit="handleRecovery(event)">
+          <input type="text" class="auth-input" id="recoveryUsername" placeholder="Username" required>
+          <input type="text" class="auth-input" id="recoveryKey" placeholder="Recovery Key" required>
+          <button type="submit" class="auth-button">Recover</button>
+          <div class="error-message" id="recoveryError"></div>
+        </form>
+        <div class="auth-switch">
+          <a onclick="showLogin()">Back to Login</a>
+        </div>
+      </div>
+      <!-- QR Code Display -->
+      <div id="qrDisplay" style="display:none;">
+        <div class="auth-title">Setup Authenticator</div>
+        <div class="qr-container">
+          <p>Scan this QR code with Google Authenticator:</p>
+          <img id="qrCode" src="" alt="QR Code">
+          <div class="recovery-key" id="recoveryKeyDisplay"></div>
+          <p><strong>Save this recovery key securely!</strong></p>
+          <button class="auth-button" onclick="showLogin()">Continue to Login</button>
+        </div>
       </div>
     </div>
+
+    <!-- Chat UI -->
     <div class="chat-container hidden" id="chatContainer">
       <div class="chat-header">
         <span class="chat-title">Socket.IO Chat</span>
@@ -411,7 +384,84 @@
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      // Night mode logic
+      // ---- Authentication JS ----
+      const socket = io();
+      let username = "";
+
+      function showLogin() {
+        document.getElementById("loginForm").style.display = "block";
+        document.getElementById("registerForm").style.display = "none";
+        document.getElementById("recoveryForm").style.display = "none";
+        document.getElementById("qrDisplay").style.display = "none";
+      }
+      function showRegister() {
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("registerForm").style.display = "block";
+        document.getElementById("recoveryForm").style.display = "none";
+        document.getElementById("qrDisplay").style.display = "none";
+      }
+      function showRecovery() {
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("registerForm").style.display = "none";
+        document.getElementById("recoveryForm").style.display = "block";
+        document.getElementById("qrDisplay").style.display = "none";
+      }
+      function showQR() {
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("registerForm").style.display = "none";
+        document.getElementById("recoveryForm").style.display = "none";
+        document.getElementById("qrDisplay").style.display = "block";
+      }
+      // Registration
+      function handleRegister(e) {
+        e.preventDefault();
+        const username = document.getElementById("registerUsername").value.trim();
+        document.getElementById("registerError").textContent = "";
+        socket.emit("register", username);
+      }
+      // Login
+      function handleLogin(e) {
+        e.preventDefault();
+        const username = document.getElementById("loginUsername").value.trim();
+        const token = document.getElementById("loginToken").value.trim();
+        document.getElementById("loginError").textContent = "";
+        socket.emit("login", { username, token });
+      }
+      // Recovery
+      function handleRecovery(e) {
+        e.preventDefault();
+        const username = document.getElementById("recoveryUsername").value.trim();
+        const recoveryKey = document.getElementById("recoveryKey").value.trim();
+        document.getElementById("recoveryError").textContent = "";
+        socket.emit("recover", { username, recoveryKey });
+      }
+      // Socket events
+      socket.on("register_success", ({ qrCode, recoveryKey }) => {
+        document.getElementById("qrCode").src = qrCode;
+        document.getElementById("recoveryKeyDisplay").textContent = recoveryKey;
+        showQR();
+      });
+      socket.on("register_error", (msg) => {
+        document.getElementById("registerError").textContent = msg;
+      });
+      socket.on("login_success", () => {
+        document.getElementById("authContainer").style.display = "none";
+        document.getElementById("chatContainer").classList.remove("hidden");
+        username = document.getElementById("loginUsername").value.trim();
+      });
+      socket.on("login_error", (msg) => {
+        document.getElementById("loginError").textContent = msg;
+      });
+      socket.on("recovery_success", ({ qrCode, recoveryKey }) => {
+        document.getElementById("qrCode").src = qrCode;
+        document.getElementById("recoveryKeyDisplay").textContent = recoveryKey;
+        showQR();
+      });
+      socket.on("recovery_error", (msg) => {
+        document.getElementById("recoveryError").textContent = msg;
+      });
+
+      // ---- Night mode logic ----
       const toggleModeBtn = document.getElementById("toggleModeBtn");
       function setNightMode(isNight) {
         if(isNight) {
@@ -424,26 +474,19 @@
           localStorage.setItem('nightMode','0');
         }
       }
-      // Init night mode from storage
       if(localStorage.getItem('nightMode') === '1') setNightMode(true);
       else setNightMode(false);
       toggleModeBtn.addEventListener("click", ()=>{
         setNightMode(!document.body.classList.contains('night'));
       });
 
-      const socket = io();
+      // ---- Chat logic ----
       const form = document.getElementById("form");
       const input = document.getElementById("input");
       const fileInput = document.getElementById("fileInput");
       const attachedFile = document.getElementById("attachedFile");
       const sendButton = document.getElementById("sendButton");
       const messages = document.getElementById("messages");
-      const usernameModal = document.getElementById("usernameModal");
-      const usernameInput = document.getElementById("usernameInput");
-      const submitUsername = document.getElementById("submitUsername");
-      const chatContainer = document.getElementById("chatContainer");
-      const usernameError = document.getElementById("usernameError");
-
       // Image modal elements
       const imageModal = document.getElementById("imageModal");
       const imageModalContent = document.getElementById("imageModalContent");
@@ -454,48 +497,12 @@
       const modalImage = document.getElementById("modalImage");
       const imageModalWrapper = document.getElementById("imageModalWrapper");
 
-      let username = "";
       let isUploading = false;
       let uploadMessageLi = null;
       let sendingTimeout = null;
       let sendingAnimationInterval = null;
-
-      // For modal zoom and pan
       let currentZoom = 1;
       let panX = 0, panY = 0, isPanning = false, startPan = {x:0, y:0}, startOffset = {x:0, y:0};
-
-      // Handle username submission
-      submitUsername.addEventListener("click", () => {
-        const inputValue = usernameInput.value.trim();
-        if (inputValue) {
-          socket.emit("join", inputValue);
-        } else {
-          showError("Please enter a name!");
-        }
-      });
-
-      usernameInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          submitUsername.click();
-        }
-      });
-
-      socket.on("username taken", () => {
-        showError("Username is already taken!");
-      });
-
-      socket.on("joined", () => {
-        username = usernameInput.value.trim();
-        usernameModal.classList.add("hidden");
-        chatContainer.classList.remove("hidden");
-      });
-
-      function showError(message) {
-        usernameError.textContent = message;
-        usernameError.style.display = "block";
-      }
-
-      usernameInput.focus();
 
       fileInput.addEventListener("change", () => {
         if (fileInput.files.length > 0) {
@@ -511,27 +518,25 @@
         const hasFile = fileInput.files.length > 0;
 
         if (textToSend) {
-          socket.emit("chat message", { user: username, text: textToSend });
+          socket.emit("chat_message", { text: textToSend });
           input.value = "";
         }
 
         if (hasFile && !isUploading) {
           const file = fileInput.files[0];
-          if (file.size > 100 * 1024 * 1024) { // 100MB limit
+          if (file.size > 100 * 1024 * 1024) {
             alert("File size exceeds 100MB!");
             return;
           }
           isUploading = true;
           fileInput.disabled = true;
 
-          // Add "Sending..." message
           uploadMessageLi = document.createElement("li");
           uploadMessageLi.innerHTML =
             `<strong>${username}:</strong> Sending <em>${file.name}</em>... <span id="sendingStatus">⏳</span>`;
           messages.appendChild(uploadMessageLi);
           messages.scrollTop = messages.scrollHeight;
 
-          // Dynamic "⏳" animation
           let dots = 1;
           sendingAnimationInterval = setInterval(() => {
             if (!uploadMessageLi) return;
@@ -540,13 +545,11 @@
             dots = (dots % 3) + 1;
           }, 500);
 
-          // Read and send file
           const reader = new FileReader();
           reader.onload = () => {
-            socket.emit("file message", {
-              user: username,
+            socket.emit("file_message", {
               fileName: file.name,
-              data: reader.result,
+              data: reader.result
             });
 
             fileInput.value = "";
@@ -554,7 +557,6 @@
             isUploading = false;
             fileInput.disabled = false;
 
-            // Timeout for server acknowledgement (e.g. 30s)
             sendingTimeout = setTimeout(() => {
               if (uploadMessageLi && uploadMessageLi.parentNode) {
                 uploadMessageLi.querySelector("#sendingStatus").textContent = "❌ Timed out!";
@@ -579,7 +581,7 @@
         }
       });
 
-      // Render a single message (text only for history)
+      // Render message
       function renderMessage(msg) {
         const item = document.createElement("li");
         if (msg.type === "text") {
@@ -587,8 +589,7 @@
           messages.appendChild(item);
         }
       }
-
-      // Render a file message (audio, video, image, generic)
+      // Render file message
       function renderFileMessage(msg) {
         const item = document.createElement("li");
         const mimeTypeMatch = msg.data.match(/^data:([^;]+);/);
@@ -611,73 +612,15 @@
         messages.scrollTop = messages.scrollHeight;
       }
 
-      // Add this to your existing socket.io event handlers in the script section:
-
-      socket.on("setup_2fa", (data) => {
-        // Show QR code and recovery key to user
-        const modalContent = document.querySelector(".modal-content");
-        modalContent.innerHTML = `
-          <h3>Set up 2FA</h3>
-          <p>Scan this QR code with Google Authenticator:</p>
-          <img src="${data.qrCode}" alt="QR Code" style="max-width: 200px; margin: 10px 0;">
-          <p>Your recovery key (save this somewhere safe!):</p>
-          <code style="display: block; word-break: break-all; margin: 10px 0; padding: 10px; background: #f5f5f5;">${data.recoveryKey}</code>
-          <p>Enter the code from Google Authenticator:</p>
-          <input type="text" id="totpCode" placeholder="Enter 6-digit code" />
-          <button id="verify2FA">Verify</button>
-          <div class="error" id="authError" style="display: none;"></div>
-        `;
-      });
-      
-      // Modify the username submit handler:
-      submitUsername.addEventListener("click", () => {
-        const inputValue = usernameInput.value.trim();
-        const totpCode = document.getElementById("totpCode")?.value;
-        
-        if (inputValue) {
-          socket.emit("join", { 
-            username: inputValue,
-            token: totpCode 
-          });
-        } else {
-          showError("Please enter a name!");
-        }
-      });
-      
-      // Add recovery functionality
-      const recoveryForm = `
-        <h3>Account Recovery</h3>
-        <input type="text" id="recoveryUsername" placeholder="Username" />
-        <input type="text" id="recoveryKey" placeholder="Recovery Key" />
-        <button id="recoverAccount">Recover Account</button>
-        <div class="error" id="recoveryError" style="display: none;"></div>
-      `;
-      
-      // Add a "Lost Access?" link to the username modal
-      usernameModal.querySelector(".modal-content").innerHTML += `
-        <p><a href="#" id="showRecovery">Lost access?</a></p>
-      `;
-      
-      document.getElementById("showRecovery").addEventListener("click", (e) => {
-        e.preventDefault();
-        usernameModal.querySelector(".modal-content").innerHTML = recoveryForm;
-      });
-      
-      // Display chat history (received on join)
-      socket.on("chat history", (history) => {
-        messages.innerHTML = ""; // Clear messages
+      socket.on("chat_history", (history) => {
+        messages.innerHTML = "";
         history.forEach(renderMessage);
       });
-
-      // Display new text message
-      socket.on("chat message", (msg) => {
+      socket.on("chat_message", (msg) => {
         renderMessage(msg);
         messages.scrollTop = messages.scrollHeight;
       });
-
-      // Display new file message (live only)
-      socket.on("file message", (msg) => {
-        // Remove "Sending..." status if present
+      socket.on("file_message", (msg) => {
         if (uploadMessageLi && uploadMessageLi.parentNode) {
           uploadMessageLi.parentNode.removeChild(uploadMessageLi);
           uploadMessageLi = null;
@@ -687,7 +630,7 @@
         renderFileMessage(msg);
       });
 
-      // ----------- MODAL LOGIC (image inspection only) -----------
+      // Image modal logic (unchanged)
       function openImageModal(src) {
         imageModal.classList.remove('hidden');
         currentZoom = 1;
@@ -698,8 +641,6 @@
       function setTransform(x, y, scale) {
         modalImage.style.transform = `translate(${x}px,${y}px) scale(${scale})`;
       }
-
-      // Drag and pan for image (mouse)
       function modalMouseDown(e) {
         isPanning = true;
         startPan.x = e.clientX; startPan.y = e.clientY;
@@ -717,7 +658,6 @@
         isPanning = false;
         document.body.style.cursor = "";
       }
-      // Touch drag for mobile
       function modalTouchStart(e) {
         if(e.touches.length===1) {
           isPanning = true;
@@ -735,8 +675,6 @@
       function modalTouchEnd(e) {
         isPanning = false;
       }
-
-      // Zoom buttons
       zoomInBtn.addEventListener("click", () => {
         currentZoom = Math.min(currentZoom + 0.25, 4);
         setTransform(panX, panY, currentZoom);
@@ -745,8 +683,6 @@
         currentZoom = Math.max(currentZoom - 0.25, 0.5);
         setTransform(panX, panY, currentZoom);
       });
-
-      // Download button
       downloadBtn.addEventListener("click", () => {
         let src = modalImage.src;
         let link = document.createElement('a');
@@ -756,8 +692,6 @@
         link.click();
         document.body.removeChild(link);
       });
-
-      // Close modal
       imageModalClose.addEventListener("click", () => {
         imageModal.classList.add("hidden");
         modalImage.src = "";
@@ -768,27 +702,21 @@
           modalImage.src = "";
         }
       });
-
-      // Mouse drag events for pan
       modalImage.addEventListener('mousedown', modalMouseDown);
       modalImage.addEventListener('mousemove', modalMouseMove);
       modalImage.addEventListener('mouseup', modalMouseUp);
       modalImage.addEventListener('mouseleave', modalMouseUp);
-
-      // Touch drag events for pan
       modalImage.addEventListener('touchstart', modalTouchStart);
       modalImage.addEventListener('touchmove', modalTouchMove);
       modalImage.addEventListener('touchend', modalTouchEnd);
-
-      // Open modal when clicking image in chat
       messages.addEventListener("click", function(e) {
         if (e.target.tagName === "IMG") {
           openImageModal(e.target.src);
         }
       });
+
+      // Initial auth
+      showLogin();
     </script>
   </body>
 </html>
-
-
-
