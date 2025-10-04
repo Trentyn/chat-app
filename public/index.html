@@ -338,7 +338,7 @@
           <a onclick="showLogin()">Back to Login</a>
         </div>
       </div>
-      <!-- QR Code Display -->
+      <!-- QR Code Display & Confirm -->
       <div id="qrDisplay" style="display:none;">
         <div class="auth-title">Setup Authenticator</div>
         <div class="qr-container">
@@ -346,8 +346,16 @@
           <img id="qrCode" src="" alt="QR Code">
           <div class="recovery-key" id="recoveryKeyDisplay"></div>
           <p><strong>Save this recovery key securely!</strong></p>
-          <button class="auth-button" onclick="showLogin()">Continue to Login</button>
         </div>
+        <form class="auth-form" onsubmit="handleRegisterConfirm(event)">
+          <input type="text" class="auth-input" id="registerToken" placeholder="Enter code from app" required>
+          <select class="auth-input" id="registerTheme">
+            <option value="light" selected>Light Theme</option>
+            <option value="dark">Dark Theme</option>
+          </select>
+          <button type="submit" class="auth-button">Confirm & Continue to Login</button>
+          <div class="error-message" id="registerConfirmError"></div>
+        </form>
       </div>
     </div>
 
@@ -387,6 +395,19 @@
       // ---- Authentication JS ----
       const socket = io();
       let username = "";
+      let currentTheme = "light";
+
+      function setTheme(theme) {
+        if (theme === "dark") {
+          document.body.classList.add("night");
+          document.getElementById("toggleModeBtn").textContent = "🌞";
+          currentTheme = "dark";
+        } else {
+          document.body.classList.remove("night");
+          document.getElementById("toggleModeBtn").textContent = "🌙";
+          currentTheme = "light";
+        }
+      }
 
       function showLogin() {
         document.getElementById("loginForm").style.display = "block";
@@ -412,12 +433,20 @@
         document.getElementById("recoveryForm").style.display = "none";
         document.getElementById("qrDisplay").style.display = "block";
       }
-      // Registration
+      // Registration Step 1
       function handleRegister(e) {
         e.preventDefault();
         const username = document.getElementById("registerUsername").value.trim();
         document.getElementById("registerError").textContent = "";
         socket.emit("register", username);
+      }
+      // Registration Step 2: Confirm code & theme
+      function handleRegisterConfirm(e) {
+        e.preventDefault();
+        const token = document.getElementById("registerToken").value.trim();
+        const theme = document.getElementById("registerTheme").value;
+        document.getElementById("registerConfirmError").textContent = "";
+        socket.emit("register_confirm", { token, theme });
       }
       // Login
       function handleLogin(e) {
@@ -436,18 +465,23 @@
         socket.emit("recover", { username, recoveryKey });
       }
       // Socket events
-      socket.on("register_success", ({ qrCode, recoveryKey }) => {
+      socket.on("register_step2", ({ qrCode, recoveryKey }) => {
         document.getElementById("qrCode").src = qrCode;
         document.getElementById("recoveryKeyDisplay").textContent = recoveryKey;
         showQR();
       });
+      socket.on("register_success", () => {
+        showLogin();
+      });
       socket.on("register_error", (msg) => {
         document.getElementById("registerError").textContent = msg;
+        document.getElementById("registerConfirmError").textContent = msg;
       });
-      socket.on("login_success", () => {
+      socket.on("login_success", ({ theme }) => {
         document.getElementById("authContainer").style.display = "none";
         document.getElementById("chatContainer").classList.remove("hidden");
         username = document.getElementById("loginUsername").value.trim();
+        setTheme(theme);
       });
       socket.on("login_error", (msg) => {
         document.getElementById("loginError").textContent = msg;
@@ -460,24 +494,14 @@
       socket.on("recovery_error", (msg) => {
         document.getElementById("recoveryError").textContent = msg;
       });
+      socket.on("theme_changed", (theme) => {
+        setTheme(theme);
+      });
 
-      // ---- Night mode logic ----
-      const toggleModeBtn = document.getElementById("toggleModeBtn");
-      function setNightMode(isNight) {
-        if(isNight) {
-          document.body.classList.add('night');
-          toggleModeBtn.textContent = "🌞";
-          localStorage.setItem('nightMode','1');
-        } else {
-          document.body.classList.remove('night');
-          toggleModeBtn.textContent = "🌙";
-          localStorage.setItem('nightMode','0');
-        }
-      }
-      if(localStorage.getItem('nightMode') === '1') setNightMode(true);
-      else setNightMode(false);
-      toggleModeBtn.addEventListener("click", ()=>{
-        setNightMode(!document.body.classList.contains('night'));
+      // Theme toggle for chat UI, saves to DB
+      document.getElementById("toggleModeBtn").addEventListener("click", ()=>{
+        const newTheme = (currentTheme === "light") ? "dark" : "light";
+        socket.emit("set_theme", newTheme);
       });
 
       // ---- Chat logic ----
@@ -716,6 +740,7 @@
       });
 
       // Initial auth
+      setTheme("light");
       showLogin();
     </script>
   </body>
