@@ -300,7 +300,6 @@
   <body>
     <!-- Authentication UI -->
     <div class="auth-container" id="authContainer">
-      <!-- Login -->
       <div id="loginForm">
         <div class="auth-title">Login</div>
         <form class="auth-form" onsubmit="handleLogin(event)">
@@ -313,7 +312,6 @@
           <a onclick="showRecovery()">Lost access?</a> | <a onclick="showRegister()">Create account</a>
         </div>
       </div>
-      <!-- Register -->
       <div id="registerForm" style="display:none;">
         <div class="auth-title">Register</div>
         <form class="auth-form" onsubmit="handleRegister(event)">
@@ -325,7 +323,6 @@
           <a onclick="showLogin()">Back to Login</a>
         </div>
       </div>
-      <!-- Recovery -->
       <div id="recoveryForm" style="display:none;">
         <div class="auth-title">Account Recovery</div>
         <form class="auth-form" onsubmit="handleRecovery(event)">
@@ -338,7 +335,6 @@
           <a onclick="showLogin()">Back to Login</a>
         </div>
       </div>
-      <!-- QR Code Display & Confirm -->
       <div id="qrDisplay" style="display:none;">
         <div class="auth-title">Setup Authenticator</div>
         <div class="qr-container">
@@ -349,16 +345,11 @@
         </div>
         <form class="auth-form" onsubmit="handleRegisterConfirm(event)">
           <input type="text" class="auth-input" id="registerToken" placeholder="Enter code from app" required>
-          <select class="auth-input" id="registerTheme">
-            <option value="light" selected>Light Theme</option>
-            <option value="dark">Dark Theme</option>
-          </select>
           <button type="submit" class="auth-button">Confirm & Continue to Login</button>
           <div class="error-message" id="registerConfirmError"></div>
         </form>
       </div>
     </div>
-
     <!-- Chat UI -->
     <div class="chat-container hidden" id="chatContainer">
       <div class="chat-header">
@@ -392,11 +383,9 @@
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      // ---- Authentication JS ----
       const socket = io();
       let username = "";
       let currentTheme = "light";
-
       function setTheme(theme) {
         if (theme === "dark") {
           document.body.classList.add("night");
@@ -408,7 +397,6 @@
           currentTheme = "light";
         }
       }
-
       function showLogin() {
         document.getElementById("loginForm").style.display = "block";
         document.getElementById("registerForm").style.display = "none";
@@ -433,22 +421,18 @@
         document.getElementById("recoveryForm").style.display = "none";
         document.getElementById("qrDisplay").style.display = "block";
       }
-      // Registration Step 1
       function handleRegister(e) {
         e.preventDefault();
         const username = document.getElementById("registerUsername").value.trim();
         document.getElementById("registerError").textContent = "";
         socket.emit("register", username);
       }
-      // Registration Step 2: Confirm code & theme
       function handleRegisterConfirm(e) {
         e.preventDefault();
         const token = document.getElementById("registerToken").value.trim();
-        const theme = document.getElementById("registerTheme").value;
         document.getElementById("registerConfirmError").textContent = "";
-        socket.emit("register_confirm", { token, theme });
+        socket.emit("register_confirm", { token });
       }
-      // Login
       function handleLogin(e) {
         e.preventDefault();
         const username = document.getElementById("loginUsername").value.trim();
@@ -456,7 +440,6 @@
         document.getElementById("loginError").textContent = "";
         socket.emit("login", { username, token });
       }
-      // Recovery
       function handleRecovery(e) {
         e.preventDefault();
         const username = document.getElementById("recoveryUsername").value.trim();
@@ -464,7 +447,6 @@
         document.getElementById("recoveryError").textContent = "";
         socket.emit("recover", { username, recoveryKey });
       }
-      // Socket events
       socket.on("register_step2", ({ qrCode, recoveryKey }) => {
         document.getElementById("qrCode").src = qrCode;
         document.getElementById("recoveryKeyDisplay").textContent = recoveryKey;
@@ -497,8 +479,6 @@
       socket.on("theme_changed", (theme) => {
         setTheme(theme);
       });
-
-      // Theme toggle for chat UI, saves to DB
       document.getElementById("toggleModeBtn").addEventListener("click", ()=>{
         const newTheme = (currentTheme === "light") ? "dark" : "light";
         socket.emit("set_theme", newTheme);
@@ -528,106 +508,50 @@
       let currentZoom = 1;
       let panX = 0, panY = 0, isPanning = false, startPan = {x:0, y:0}, startOffset = {x:0, y:0};
 
-      fileInput.addEventListener("change", () => {
-        if (fileInput.files.length > 0) {
-          attachedFile.textContent = `Attached: ${fileInput.files[0].name}`;
-        } else {
-          attachedFile.textContent = "";
-        }
-      });
-
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const textToSend = input.value.trim();
-        const hasFile = fileInput.files.length > 0;
-
-        if (textToSend) {
-          socket.emit("chat_message", { text: textToSend });
-          input.value = "";
-        }
-
-        if (hasFile && !isUploading) {
-          const file = fileInput.files[0];
-          if (file.size > 100 * 1024 * 1024) {
-            alert("File size exceeds 100MB!");
-            return;
-          }
-          isUploading = true;
-          fileInput.disabled = true;
-
-          uploadMessageLi = document.createElement("li");
-          uploadMessageLi.innerHTML =
-            `<strong>${username}:</strong> Sending <em>${file.name}</em>... <span id="sendingStatus">⏳</span>`;
-          messages.appendChild(uploadMessageLi);
-          messages.scrollTop = messages.scrollHeight;
-
-          let dots = 1;
-          sendingAnimationInterval = setInterval(() => {
-            if (!uploadMessageLi) return;
-            let dotStr = "⏳".repeat(dots);
-            uploadMessageLi.querySelector("#sendingStatus").textContent = dotStr;
-            dots = (dots % 3) + 1;
-          }, 500);
-
-          const reader = new FileReader();
-          reader.onload = () => {
-            socket.emit("file_message", {
-              fileName: file.name,
-              data: reader.result
-            });
-
-            fileInput.value = "";
-            attachedFile.textContent = "";
-            isUploading = false;
-            fileInput.disabled = false;
-
-            sendingTimeout = setTimeout(() => {
-              if (uploadMessageLi && uploadMessageLi.parentNode) {
-                uploadMessageLi.querySelector("#sendingStatus").textContent = "❌ Timed out!";
-                uploadMessageLi.style.color = "red";
-              }
-              if (sendingAnimationInterval) clearInterval(sendingAnimationInterval);
-            }, 30000);
-          };
-          reader.onerror = () => {
-            alert("Error reading file!");
-            isUploading = false;
-            fileInput.disabled = false;
-            if (uploadMessageLi && uploadMessageLi.parentNode) {
-              uploadMessageLi.parentNode.removeChild(uploadMessageLi);
-              uploadMessageLi = null;
-            }
-            if (sendingTimeout) clearTimeout(sendingTimeout);
-            if (sendingAnimationInterval) clearInterval(sendingAnimationInterval);
-          };
-
-          reader.readAsDataURL(file);
-        }
-      });
-
-      // Render message
+      // Helper to render message with edit/delete if owner
       function renderMessage(msg) {
         const item = document.createElement("li");
-        if (msg.type === "text") {
-          item.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
-          messages.appendChild(item);
+        item.dataset.id = msg._id || "";
+        let controls = "";
+        if (msg.user === username && !msg.deleted) {
+          controls = `
+            <button onclick="editMessage('${msg._id}')">Edit</button>
+            <button onclick="deleteMessage('${msg._id}')">Delete</button>
+          `;
+        }
+        let text = msg.text;
+        if (msg.deleted) text = "*message deleted*";
+        else if (msg.edited) text += " <span style='color:#888'>(edited)</span>";
+        item.innerHTML = `<strong>${msg.user}:</strong> ${text} ${controls}`;
+        messages.appendChild(item);
+      }
+      window.editMessage = function(id) {
+        const li = [...messages.children].find(m => m.dataset.id === id);
+        if (!li) return;
+        const oldText = li.innerText.replace(/^.*?:\s*/, '').replace(/\s\(edited\).*$/, '').replace(/\sEdit Delete$/, '');
+        const newText = prompt("Edit your message:", oldText);
+        if (newText && newText.trim()) {
+          socket.emit("edit_message", { id, newText: newText.trim() });
         }
       }
-      // Render file message
+      window.deleteMessage = function(id) {
+        if (confirm("Delete this message?")) {
+          socket.emit("delete_message", id);
+        }
+      }
       function renderFileMessage(msg) {
         const item = document.createElement("li");
         const mimeTypeMatch = msg.data.match(/^data:([^;]+);/);
         const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : '';
         let content = `<strong>${msg.user}:</strong> `;
-
         if (mimeType.startsWith('image/')) {
           content += `<img src="${msg.data}" alt="${msg.fileName}" style="cursor:pointer;" />`;
         } else if (mimeType.startsWith('audio/')) {
-          content += `🎵 ${msg.fileName} <audio controls src="${msg.data}" style="vertical-align:middle;max-width:280px;"></audio>`;
-          content += `<a href="${msg.data}" download="${msg.fileName}" style="margin-left:8px;">⬇️</a>`;
+          content += `🎵 ${msg.fileName} <audio controls src="${msg.data}"></audio>`;
+          content += `<a href="${msg.data}" download="${msg.fileName}">⬇️</a>`;
         } else if (mimeType.startsWith('video/')) {
-          content += `🎬 ${msg.fileName} <video controls src="${msg.data}" style="max-width:280px;max-height:180px;border-radius:8px;cursor:pointer;"></video>`;
-          content += `<a href="${msg.data}" download="${msg.fileName}" style="margin-left:8px;">⬇️</a>`;
+          content += `🎬 ${msg.fileName} <video controls src="${msg.data}" style="max-width:280px;max-height:180px;"></video>`;
+          content += `<a href="${msg.data}" download="${msg.fileName}">⬇️</a>`;
         } else {
           content += `📄 ${msg.fileName} <a href="${msg.data}" download="${msg.fileName}">📥</a>`;
         }
@@ -635,7 +559,6 @@
         messages.appendChild(item);
         messages.scrollTop = messages.scrollHeight;
       }
-
       socket.on("chat_history", (history) => {
         messages.innerHTML = "";
         history.forEach(renderMessage);
@@ -643,6 +566,17 @@
       socket.on("chat_message", (msg) => {
         renderMessage(msg);
         messages.scrollTop = messages.scrollHeight;
+      });
+      socket.on("message_edited", ({ id, newText, edited }) => {
+        const li = [...messages.children].find(m => m.dataset.id === id);
+        if (li) {
+          let text = newText + (edited ? " <span style='color:#888'>(edited)</span>" : "");
+          li.innerHTML = `<strong>${username}:</strong> ${text} <button onclick="editMessage('${id}')">Edit</button> <button onclick="deleteMessage('${id}')">Delete</button>`;
+        }
+      });
+      socket.on("message_deleted", ({ id }) => {
+        const li = [...messages.children].find(m => m.dataset.id === id);
+        if (li) li.innerHTML = `<strong>${username}:</strong> *message deleted*`;
       });
       socket.on("file_message", (msg) => {
         if (uploadMessageLi && uploadMessageLi.parentNode) {
@@ -654,7 +588,11 @@
         renderFileMessage(msg);
       });
 
-      // Image modal logic (unchanged)
+      // ... rest unchanged (image modal logic etc) ...
+      setTheme("light");
+      showLogin();
+
+      // Image modal logic
       function openImageModal(src) {
         imageModal.classList.remove('hidden');
         currentZoom = 1;
@@ -738,10 +676,6 @@
           openImageModal(e.target.src);
         }
       });
-
-      // Initial auth
-      setTheme("light");
-      showLogin();
     </script>
   </body>
 </html>
