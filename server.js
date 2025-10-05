@@ -3,7 +3,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
-const { User, Message } = require("./models/user");
+const { User, Message } = require("./models/User");
 const speakeasy = require("speakeasy");
 const QRCode = require("qrcode");
 const cryptoRandomString = require("crypto-random-string").default;
@@ -52,7 +52,7 @@ io.on("connection", (socket) => {
   });
 
   // Registration Step 2: verify TOTP, create user in DB, send success
-  socket.on("register_confirm", async ({ token, theme }) => {
+  socket.on("register_confirm", async ({ token }) => {
     try {
       const reg = socket._pendingRegistration;
       if (!reg) {
@@ -72,7 +72,7 @@ io.on("connection", (socket) => {
         username: reg.username,
         secret: reg.secret.base32,
         recoveryKey: reg.recoveryKey,
-        theme: theme === "dark" ? "dark" : "light"
+        theme: "light"
       });
       delete socket._pendingRegistration;
       socket.emit("register_success");
@@ -139,7 +139,38 @@ io.on("connection", (socket) => {
       text: data.text
     });
     await msg.save();
-    io.emit("chat_message", msg);
+    // Broadcast with its id
+    io.emit("chat_message", {
+      _id: msg._id,
+      user: msg.user,
+      text: msg.text,
+      edited: msg.edited,
+      deleted: msg.deleted
+    });
+  });
+
+  // Edit message
+  socket.on("edit_message", async ({ id, newText }) => {
+    if (!socket.username) return;
+    const msg = await Message.findById(id);
+    if (msg && msg.user === socket.username && !msg.deleted) {
+      msg.text = newText;
+      msg.edited = true;
+      await msg.save();
+      io.emit("message_edited", { id: msg._id, newText: msg.text, edited: true });
+    }
+  });
+
+  // Delete message
+  socket.on("delete_message", async (id) => {
+    if (!socket.username) return;
+    const msg = await Message.findById(id);
+    if (msg && msg.user === socket.username && !msg.deleted) {
+      msg.text = "*message deleted*";
+      msg.deleted = true;
+      await msg.save();
+      io.emit("message_deleted", { id: msg._id });
+    }
   });
 
   // File message: not stored, only broadcast
@@ -161,4 +192,3 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
